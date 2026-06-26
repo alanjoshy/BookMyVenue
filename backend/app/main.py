@@ -5,8 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.db.database import Base, engine
-from app.models import user, venue, booking, payment
-from app.routers import auth,bookings,payments
+# import the models package so every table is registered, without this the server will not run
+import app.models  # noqa: F401
+from app.routers import auth, bookings, payments, venue, amenity, venue_amenity
 
 
 logging.basicConfig(level=logging.INFO)
@@ -53,8 +54,12 @@ app.add_middleware(
 
 
 app.include_router(auth.router)
-app.include_router(bookings.router) 
+app.include_router(bookings.router)
 app.include_router(payments.router)
+# these routers were missing, without this venue and amenity pages will not work
+app.include_router(venue.router)
+app.include_router(amenity.router)
+app.include_router(venue_amenity.router)
 
 
 @app.get("/")
