@@ -7,7 +7,7 @@ from sqlalchemy import text
 from app.db.database import Base, engine
 # import the models package so every table is registered, without this the server will not run
 import app.models  # noqa: F401
-from app.routers import auth, bookings, payments, venue, amenity, venue_amenity
+from app.routers import auth, bookings, payments, venue, amenity, venue_amenity, admin
 
 
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +60,8 @@ app.include_router(payments.router)
 app.include_router(venue.router)
 app.include_router(amenity.router)
 app.include_router(venue_amenity.router)
+# register admin routes for superadmin panel
+app.include_router(admin.router)
 
 
 @app.get("/")
