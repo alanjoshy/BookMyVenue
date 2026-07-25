@@ -92,7 +92,12 @@ def _find_overlap(
 def _validate_google_maps_url(url: str | None) -> None:
     if not url or not url.strip():
         return
-    allowed = ("google.com/maps", "maps.app.goo.gl", "goo.gl/maps")
+    allowed = (
+        "google.com/maps",
+        "maps.app.goo.gl",
+        "goo.gl/maps",
+        "share.google/",
+    )
     if not any(part in url for part in allowed):
         raise HTTPException(
             status_code=400,
@@ -109,6 +114,7 @@ def _validate_google_review_url(url: str | None) -> None:
         "google.com/maps",
         "maps.app.goo.gl",
         "goo.gl/maps",
+        "share.google/",
     )
     if not any(part in url for part in allowed):
         raise HTTPException(

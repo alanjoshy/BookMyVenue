@@ -41,21 +41,32 @@ function SearchIcon({ className = "w-4 h-4" }) {
 
 
 function VenueCard({ venue }) {
+  const cover =
+    venue.images?.find((img) => img.is_cover)?.url ||
+    venue.images?.[0]?.url ||
+    venue.image_url ||
+    null;
+
   return (
     <Link
       to={`/venues/${venue.id}`}
       className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl hover:border-rose-100 transition-all duration-300"
     >
-      <div className="relative overflow-hidden">
-        {venue.image_url ? (
+      <div className="relative overflow-hidden aspect-[4/3]">
+        {cover ? (
           <img
-            src={venue.image_url}
+            src={cover}
             alt={venue.name}
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
             <span className="text-slate-400 text-sm">No image</span>
+          </div>
+        )}
+        {venue.images?.length > 1 && (
+          <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] font-medium px-2 py-1 rounded-lg">
+            {venue.images.length} photos
           </div>
         )}
         {venue.average_rating && (
@@ -116,7 +127,7 @@ function VenueCard({ venue }) {
 function VenueCardSkeleton() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-slate-100 animate-pulse">
-      <div className="w-full h-48 bg-slate-100" />
+      <div className="w-full aspect-[4/3] bg-slate-100" />
       <div className="p-4 space-y-2">
         <div className="h-4 bg-slate-100 rounded w-3/4" />
         <div className="h-3 bg-slate-100 rounded w-1/2" />

@@ -334,16 +334,254 @@ function AvailabilityChecker({ venueId }) {
 }
 
 
+function getVenuePhotos(venue) {
+  if (venue?.images?.length) {
+    return [...venue.images]
+      .sort((a, b) => {
+        if (Boolean(a.is_cover) !== Boolean(b.is_cover)) {
+          return a.is_cover ? -1 : 1;
+        }
+        return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      })
+      .map((img) => (typeof img === "string" ? img : img?.url))
+      .filter(Boolean);
+  }
+  if (venue?.image_url) return [venue.image_url];
+  return [];
+}
+
+function getCoverUrl(venue) {
+  return getVenuePhotos(venue)[0] || null;
+}
+
+function PhotoGallery({ venue }) {
+  const photos = getVenuePhotos(venue);
+  const [activeIndex, setActiveIndex] = useState(null);
+
+  if (photos.length === 0) {
+    return (
+      <div className="mb-8 h-72 md:h-96 rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-slate-400">
+        No photos available
+      </div>
+    );
+  }
+
+  const openAt = (index) => setActiveIndex(index);
+
+  const lightbox =
+    activeIndex !== null ? (
+      <div
+        className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
+        onClick={() => setActiveIndex(null)}
+        role="dialog"
+        aria-modal="true"
+      >
+        <button
+          type="button"
+          className="absolute top-4 right-4 text-white/80 hover:text-white text-sm"
+          onClick={() => setActiveIndex(null)}
+        >
+          Close
+        </button>
+        {photos.length > 1 && (
+          <button
+            type="button"
+            className="absolute left-3 md:left-8 text-white/80 hover:text-white text-2xl px-3"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveIndex((i) => (i - 1 + photos.length) % photos.length);
+            }}
+            aria-label="Previous photo"
+          >
+            ‹
+          </button>
+        )}
+        <img
+          src={photos[activeIndex]}
+          alt={`${venue.name} photo ${activeIndex + 1}`}
+          className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
+          onClick={(e) => e.stopPropagation()}
+        />
+        {photos.length > 1 && (
+          <button
+            type="button"
+            className="absolute right-3 md:right-8 text-white/80 hover:text-white text-2xl px-3"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveIndex((i) => (i + 1) % photos.length);
+            }}
+            aria-label="Next photo"
+          >
+            ›
+          </button>
+        )}
+        <p className="absolute bottom-4 text-white/70 text-sm">
+          {activeIndex + 1} / {photos.length}
+        </p>
+      </div>
+    ) : null;
+
+  if (photos.length === 1) {
+    return (
+      <>
+        <div className="mb-8 h-72 md:h-96 rounded-2xl overflow-hidden">
+          <button type="button" onClick={() => openAt(0)} className="block w-full h-full">
+            <img
+              src={photos[0]}
+              alt={venue.name}
+              className="w-full h-full object-cover"
+            />
+          </button>
+        </div>
+        {lightbox}
+      </>
+    );
+  }
+
+  if (photos.length === 2) {
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden mb-8 h-72 md:h-96">
+          {photos.map((url, idx) => (
+            <button
+              key={`${url}-${idx}`}
+              type="button"
+              onClick={() => openAt(idx)}
+              className="relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-rose-400"
+            >
+              <img
+                src={url}
+                alt={`${venue.name} photo ${idx + 1}`}
+                className="absolute inset-0 w-full h-full object-cover hover:scale-[1.02] transition-transform duration-300"
+              />
+            </button>
+          ))}
+        </div>
+        {lightbox}
+      </>
+    );
+  }
+
+  if (photos.length === 3) {
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden mb-8 h-72 md:h-96">
+          <button
+            type="button"
+            onClick={() => openAt(0)}
+            className="relative row-span-2 overflow-hidden focus:outline-none focus:ring-2 focus:ring-rose-400"
+          >
+            <img
+              src={photos[0]}
+              alt={`${venue.name} photo 1`}
+              className="absolute inset-0 w-full h-full object-cover hover:scale-[1.02] transition-transform duration-300"
+            />
+          </button>
+          {photos.slice(1, 3).map((url, idx) => (
+            <button
+              key={`${url}-${idx + 1}`}
+              type="button"
+              onClick={() => openAt(idx + 1)}
+              className="relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-rose-400"
+            >
+              <img
+                src={url}
+                alt={`${venue.name} photo ${idx + 2}`}
+                className="absolute inset-0 w-full h-full object-cover hover:scale-[1.03] transition-transform duration-300"
+              />
+            </button>
+          ))}
+        </div>
+        {lightbox}
+      </>
+    );
+  }
+
+  if (photos.length === 4) {
+    return (
+      <>
+        <div className="grid grid-cols-2 grid-rows-2 gap-2 rounded-2xl overflow-hidden mb-8 h-72 md:h-96">
+          {photos.map((url, idx) => (
+            <button
+              key={`${url}-${idx}`}
+              type="button"
+              onClick={() => openAt(idx)}
+              className="relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-rose-400"
+            >
+              <img
+                src={url}
+                alt={`${venue.name} photo ${idx + 1}`}
+                className="absolute inset-0 w-full h-full object-cover hover:scale-[1.03] transition-transform duration-300"
+              />
+            </button>
+          ))}
+        </div>
+        {lightbox}
+      </>
+    );
+  }
+
+  const main = photos[0];
+  const thumbs = photos.slice(1, 5);
+  const extraCount = Math.max(0, photos.length - 5);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-2 rounded-2xl overflow-hidden mb-8 h-72 md:h-96">
+        <button
+          type="button"
+          onClick={() => openAt(0)}
+          className="col-span-2 row-span-2 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-rose-400"
+        >
+          <img
+            src={main}
+            alt={`${venue.name} photo 1`}
+            className="absolute inset-0 w-full h-full object-cover hover:scale-[1.02] transition-transform duration-300"
+          />
+        </button>
+
+        {thumbs.map((url, idx) => {
+          const photoIndex = idx + 1;
+          const isLast = idx === thumbs.length - 1 && extraCount > 0;
+          return (
+            <button
+              key={`${url}-${photoIndex}`}
+              type="button"
+              onClick={() => openAt(photoIndex)}
+              className="relative overflow-hidden bg-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-400"
+            >
+              <img
+                src={url}
+                alt={`${venue.name} photo ${photoIndex + 1}`}
+                className="absolute inset-0 w-full h-full object-cover hover:scale-[1.03] transition-transform duration-300"
+              />
+              {isLast && (
+                <span className="absolute inset-0 bg-black/45 flex items-center justify-center text-white text-sm font-semibold">
+                  +{extraCount} more
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {lightbox}
+    </>
+  );
+}
+
+
 function SimilarVenueCard({ venue }) {
+  const cover = getCoverUrl(venue);
+
   return (
     <Link
       to={`/venues/${venue.id}`}
       className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-lg hover:border-rose-100 transition-all"
     >
       <div className="relative overflow-hidden">
-        {venue.image_url ? (
+        {cover ? (
           <img
-            src={venue.image_url}
+            src={cover}
             alt={venue.name}
             className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500"
           />
@@ -457,26 +695,7 @@ function VenueDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 grid-rows-2 gap-2 rounded-2xl overflow-hidden mb-8 h-72 md:h-96">
-          <div className="col-span-2 row-span-2">
-            {venue.image_url ? (
-              <img src={venue.image_url} alt={venue.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-slate-400">
-                No image available
-              </div>
-            )}
-          </div>
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-slate-100 flex items-center justify-center text-slate-300 text-xs relative overflow-hidden">
-              {venue.image_url ? (
-                <img src={venue.image_url} alt="" className="w-full h-full object-cover opacity-70" />
-              ) : (
-                <span>Photo {i + 1}</span>
-              )}
-            </div>
-          ))}
-        </div>
+        <PhotoGallery venue={venue} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
