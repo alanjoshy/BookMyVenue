@@ -29,6 +29,7 @@ function VenueEditPage() {
     google_review_url: "",
     description: "",
     approval_status: "pending",
+    rejection_reason: "",
     is_active: true,
   });
   const [error, setError] = useState("");
@@ -57,6 +58,7 @@ function VenueEditPage() {
           google_review_url: v.google_review_url || "",
           description: v.description || "",
           approval_status: v.approval_status,
+          rejection_reason: v.rejection_reason || "",
           is_active: v.is_active,
         });
       })
@@ -86,6 +88,10 @@ function VenueEditPage() {
         google_review_url: form.google_review_url || null,
         description: form.description || null,
         approval_status: form.approval_status,
+        rejection_reason:
+          form.approval_status === "rejected"
+            ? form.rejection_reason.trim() || null
+            : null,
         is_active: form.is_active,
       });
       navigate("/admin/venues");
@@ -107,9 +113,34 @@ function VenueEditPage() {
       error={error}
     >
       {venue && (
-        <div className="flex gap-2 mb-5">
-          <StatusBadge status={venue.approval_status} />
-          <StatusBadge status={venue.is_active ? "active" : "inactive"} />
+        <div className="mb-5 space-y-3">
+          <div className="flex gap-2">
+            <StatusBadge status={venue.approval_status} />
+            <StatusBadge status={venue.is_active ? "active" : "inactive"} />
+          </div>
+          {(venue.images?.length > 0 || venue.image_url) && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(venue.images?.length
+                ? venue.images.map((img) => img.url)
+                : [venue.image_url]
+              )
+                .filter(Boolean)
+                .slice(0, 8)
+                .map((url, idx) => (
+                  <img
+                    key={`${url}-${idx}`}
+                    src={url}
+                    alt=""
+                    className="h-24 w-full object-cover rounded-xl border border-slate-100"
+                  />
+                ))}
+            </div>
+          )}
+          {venue.amenities?.length > 0 && (
+            <p className="text-xs text-slate-500">
+              Amenities: {venue.amenities.map((a) => a.name).join(", ")}
+            </p>
+          )}
         </div>
       )}
 
@@ -177,6 +208,22 @@ function VenueEditPage() {
             </select>
           </FormField>
         </div>
+
+        {form.approval_status === "rejected" && (
+          <FormField
+            label="Rejection reason"
+            hint="Shown to help the owner understand what to fix"
+          >
+            <textarea
+              name="rejection_reason"
+              value={form.rejection_reason}
+              onChange={handleChange}
+              className={inputCls}
+              rows={3}
+              placeholder="Why was this venue rejected?"
+            />
+          </FormField>
+        )}
 
         <FormField label="Image URL">
           <input name="image_url" value={form.image_url} onChange={handleChange} className={inputCls} />

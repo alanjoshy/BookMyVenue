@@ -30,6 +30,10 @@ class BookingRequestOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BookingRejectRequest(BaseModel):
+    rejection_reason: Optional[str] = None
+
+
 class AvailabilityCalendarOut(BaseModel):
     month: str  
     days: dict[str, Any]  

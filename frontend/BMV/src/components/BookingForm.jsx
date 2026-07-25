@@ -92,7 +92,7 @@ function BookingForm({ venueId, pricePerDay }) {
     );
 
     if (createBookingAsync.fulfilled.match(result)) {
-      navigate(`/checkout/${result.payload.id}`);
+      navigate(`/bookings/${result.payload.id}`);
     }
   };
 

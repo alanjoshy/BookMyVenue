@@ -59,7 +59,8 @@ function OwnerVenueEditPage() {
   // loading.activeVenue which starts false and can't guard the first render.
   const [fields, setFields] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState("");
+  const [rejectionBanner, setRejectionBanner] = useState(null);
 
   useEffect(() => {
     // Clear immediately so stale data from a previous venue never flashes.
@@ -95,6 +96,11 @@ function OwnerVenueEditPage() {
         advancePercent: venue.advance_percent ?? 30,
         allowPayAtVenue: venue.allow_pay_at_venue !== false,
       });
+      if (venue.approval_status === "rejected") {
+        setRejectionBanner(venue.rejection_reason || "");
+      } else if (!saveSuccess) {
+        setRejectionBanner(null);
+      }
     }
   }, [venue]);
 
@@ -102,7 +108,7 @@ function OwnerVenueEditPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFields((prev) => ({ ...prev, [name]: value }));
-    setSaveSuccess(false);
+    setSaveSuccess("");
   };
 
   const validate = () => {
@@ -132,6 +138,8 @@ function OwnerVenueEditPage() {
     e.preventDefault();
     if (!validate()) return;
 
+    const wasRejected = venue?.approval_status === "rejected";
+
     const result = await dispatch(
       updateVenueAsync({
         id: venue.id,
@@ -156,7 +164,12 @@ function OwnerVenueEditPage() {
     );
 
     if (updateVenueAsync.fulfilled.match(result)) {
-      setSaveSuccess(true);
+      setRejectionBanner(null);
+      setSaveSuccess(
+        wasRejected
+          ? "✓ Saved and submitted for approval again."
+          : "✓ Venue details saved successfully.",
+      );
     }
   };
 
@@ -193,12 +206,24 @@ function OwnerVenueEditPage() {
             Edit — {venue?.name}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Changes are saved to the venue on submit.
+            {rejectionBanner !== null
+              ? "Fix the issues below, then save to request approval again."
+              : "Changes are saved to the venue on submit."}
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-5">
+        {rejectionBanner !== null && (
+          <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-800">
+            <p className="font-semibold">This venue was rejected</p>
+            <p className="mt-1 text-rose-700">
+              {rejectionBanner
+                ? `Reason: ${rejectionBanner}`
+                : "Update the details and save to send it back for admin review."}
+            </p>
+          </div>
+        )}
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
             {error}
@@ -206,7 +231,7 @@ function OwnerVenueEditPage() {
         )}
         {saveSuccess && (
           <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
-            ✓ Venue details saved successfully.
+            {saveSuccess}
           </p>
         )}
 
@@ -392,7 +417,7 @@ function OwnerVenueEditPage() {
                 checked={Boolean(fields.allowPayAtVenue)}
                 onChange={(e) => {
                   setFields((prev) => ({ ...prev, allowPayAtVenue: e.target.checked }));
-                  setSaveSuccess(false);
+                  setSaveSuccess("");
                 }}
                 className="rounded border-gray-300 text-rose-900 focus:ring-rose-300"
               />
@@ -447,7 +472,11 @@ function OwnerVenueEditPage() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-rose-900 hover:bg-rose-950 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
             <Save size={14} />
-            {loading.updatingVenue ? "Saving..." : "Save Changes"}
+            {loading.updatingVenue
+              ? "Saving..."
+              : rejectionBanner !== null
+                ? "Save & request approval"
+                : "Save Changes"}
           </button>
         </div>
       </form>

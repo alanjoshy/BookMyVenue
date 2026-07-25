@@ -6,6 +6,10 @@ import { fetchMyBookingsAsync } from "../modules/bookings/bookingSlice";
 import StatusBadge from "../components/shared/StatusBadge";
 import EmptyState from "../components/shared/EmptyState";
 import { formatBookingPeriod } from "../utils/bookingFormat";
+import {
+  resolveCustomerBookingStatus,
+  canCustomerPay,
+} from "../utils/bookingStatus";
 
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
@@ -43,7 +47,10 @@ function DashboardPage() {
       return end && new Date(end) >= today;
     });
 
-    const pendingPayment = bookingList.filter((b) => b.status === "pending_payment");
+    const pendingPayment = bookingList.filter((b) => canCustomerPay(b));
+    const awaitingApproval = bookingList.filter(
+      (b) => resolveCustomerBookingStatus(b) === "awaiting_approval",
+    );
     const totalSpent = bookingList
       .filter((b) => b.status === "booked")
       .reduce((sum, b) => sum + Number(b.amount || 0), 0);
@@ -51,10 +58,12 @@ function DashboardPage() {
     return {
       upcoming: upcoming.length,
       pendingPayment: pendingPayment.length,
+      awaitingApproval: awaitingApproval.length,
       total: bookingList.length,
       totalSpent,
       recent: bookingList.slice(0, 5),
       firstPending: pendingPayment[0],
+      firstAwaiting: awaitingApproval[0],
     };
   }, [bookingList]);
 
@@ -78,6 +87,21 @@ function DashboardPage() {
         />
       </section>
 
+      {stats.firstAwaiting && (
+        <Link
+          to={`/bookings/${stats.firstAwaiting.id}`}
+          className="block bg-blue-50 border border-blue-200 rounded-2xl p-4 hover:bg-blue-100/80 transition-colors"
+        >
+          <p className="text-sm font-semibold text-blue-800">Awaiting owner approval</p>
+          <p className="text-sm text-blue-700 mt-1">
+            {stats.firstAwaiting.venue_name || "Your booking"} is waiting for the venue owner to accept.
+          </p>
+          <span className="inline-block text-xs font-medium text-blue-800 mt-2">
+            View booking →
+          </span>
+        </Link>
+      )}
+
       {stats.firstPending && (
         <Link
           to={`/bookings/${stats.firstPending.id}`}
@@ -85,7 +109,7 @@ function DashboardPage() {
         >
           <p className="text-sm font-semibold text-amber-800">Payment pending</p>
           <p className="text-sm text-amber-700 mt-1">
-            Complete payment for {stats.firstPending.venue_name || "your booking"} — ₹
+            Owner accepted — pay full or advance for {stats.firstPending.venue_name || "your booking"} — ₹
             {Number(stats.firstPending.amount).toLocaleString("en-IN")}
           </p>
           <span className="inline-block text-xs font-medium text-amber-800 mt-2">
@@ -137,7 +161,7 @@ function DashboardPage() {
                     <p className="text-xs text-slate-400 mt-1">Order #{b.id}</p>
                   </div>
                   <div className="text-right shrink-0 space-y-1.5">
-                    <StatusBadge status={b.status} />
+                    <StatusBadge status={resolveCustomerBookingStatus(b)} />
                     <p className="text-sm font-bold text-slate-800">
                       ₹{Number(b.amount).toLocaleString("en-IN")}
                     </p>

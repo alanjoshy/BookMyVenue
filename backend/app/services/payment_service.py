@@ -162,6 +162,16 @@ def initiate_payment(db: Session, current_user: User, data: PaymentInitiate) -> 
             status_code=400,
             detail="Booking is not awaiting payment",
         )
+    if booking.owner_status == "rejected":
+        raise HTTPException(
+            status_code=400,
+            detail="This booking was rejected by the venue owner",
+        )
+    if booking.owner_status != "accepted":
+        raise HTTPException(
+            status_code=400,
+            detail="Payment is available only after the venue owner accepts your booking",
+        )
 
     venue = db.query(Venue).filter(Venue.id == booking.venue_id).first()
     if venue is None:

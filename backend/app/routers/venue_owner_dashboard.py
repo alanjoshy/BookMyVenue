@@ -17,6 +17,7 @@ from app.schemas.notification import NotificationOut
 from app.schemas.venue_owner_dashboard import (
     DashboardSummaryOut,
     BookingRequestOut,
+    BookingRejectRequest,
     AvailabilityCalendarOut,
     RevenueOverviewOut,
     CheckInVerifyRequest,
@@ -83,13 +84,19 @@ def accept_booking(
 @router.patch("/bookings/{booking_id}/reject", response_model=BookingRequestOut)
 def reject_booking(
     booking_id: int,
+    payload: BookingRejectRequest = BookingRejectRequest(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_venue_owner),
 ):
-    booking = dashboard_service.reject_booking_request(db, booking_id, current_user.id)
+    booking = dashboard_service.reject_booking_request(
+        db,
+        booking_id,
+        current_user.id,
+        rejection_reason=payload.rejection_reason,
+    )
     return {
         "id": booking.id,
-        "venue_name": booking.venue.name if hasattr(booking, "venue") else None,
+        "venue_name": booking.venue.name if booking.venue else "",
         "event_type": booking.event_type,
         "event_date": booking.booking_date,
         "event_time": booking.time_slot,

@@ -5,12 +5,18 @@ import { fetchMyBookingsAsync } from "../modules/bookings/bookingSlice";
 import StatusBadge from "../components/shared/StatusBadge";
 import EmptyState from "../components/shared/EmptyState";
 import { formatBookingPeriod } from "../utils/bookingFormat";
+import {
+  resolveCustomerBookingStatus,
+  canCustomerPay,
+} from "../utils/bookingStatus";
 
 const FILTERS = [
   { key: "", label: "All" },
+  { key: "awaiting_approval", label: "Awaiting approval" },
+  { key: "pending_payment", label: "Pending payment" },
   { key: "booked", label: "Confirmed" },
   { key: "completed", label: "Completed" },
-  { key: "pending_payment", label: "Pending payment" },
+  { key: "rejected", label: "Rejected" },
   { key: "cancelled", label: "Cancelled" },
 ];
 
@@ -91,43 +97,57 @@ function OrderHistoryPage() {
       )}
 
       <div className="space-y-3">
-        {bookings.map((b) => (
-          <Link
-            key={b.id}
-            to={`/bookings/${b.id}`}
-            className="block bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md hover:border-rose-200 transition-all"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="font-semibold text-slate-800 truncate">
-                  {b.venue_name || `Venue #${b.venue_id}`}
-                </p>
-                {b.venue_location && (
-                  <p className="text-sm text-slate-400 truncate">{b.venue_location}</p>
-                )}
-                <p className="text-sm text-slate-600 mt-2">{formatBookingPeriod(b)}</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Order #{b.id} · {new Date(b.created_at).toLocaleDateString("en-IN")}
-                </p>
+        {bookings.map((b) => {
+          const displayStatus = resolveCustomerBookingStatus(b);
+          const showPay = canCustomerPay(b);
+          return (
+            <Link
+              key={b.id}
+              to={`/bookings/${b.id}`}
+              className="block bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md hover:border-rose-200 transition-all"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-800 truncate">
+                    {b.venue_name || `Venue #${b.venue_id}`}
+                  </p>
+                  {b.venue_location && (
+                    <p className="text-sm text-slate-400 truncate">{b.venue_location}</p>
+                  )}
+                  <p className="text-sm text-slate-600 mt-2">{formatBookingPeriod(b)}</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Order #{b.id} · {new Date(b.created_at).toLocaleDateString("en-IN")}
+                  </p>
+                </div>
+                <div className="text-right shrink-0 space-y-2">
+                  <StatusBadge status={displayStatus} />
+                  <p className="text-base font-bold text-slate-800">
+                    ₹{Number(b.amount).toLocaleString("en-IN")}
+                  </p>
+                  {b.payment_status && (
+                    <p className="text-xs text-slate-400 capitalize">Payment: {b.payment_status}</p>
+                  )}
+                  {displayStatus === "awaiting_approval" && (
+                    <span className="inline-block text-xs text-blue-700 font-medium">
+                      Waiting for owner →
+                    </span>
+                  )}
+                  {showPay && (
+                    <span className="inline-block text-xs text-rose-800 font-medium">Pay now →</span>
+                  )}
+                  {displayStatus === "rejected" && (
+                    <span className="inline-block text-xs text-red-600 font-medium">
+                      Rejected by owner
+                    </span>
+                  )}
+                  {b.can_review && (
+                    <span className="inline-block text-xs text-rose-800 font-medium">Write review →</span>
+                  )}
+                </div>
               </div>
-              <div className="text-right shrink-0 space-y-2">
-                <StatusBadge status={b.status} />
-                <p className="text-base font-bold text-slate-800">
-                  ₹{Number(b.amount).toLocaleString("en-IN")}
-                </p>
-                {b.payment_status && (
-                  <p className="text-xs text-slate-400 capitalize">Payment: {b.payment_status}</p>
-                )}
-                {b.status === "pending_payment" && (
-                  <span className="inline-block text-xs text-rose-800 font-medium">Pay now →</span>
-                )}
-                {b.can_review && (
-                  <span className="inline-block text-xs text-rose-800 font-medium">Write review →</span>
-                )}
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
 
       {!loading && totalItems > PAGE_SIZE && (

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { MapPin, Calendar, Users, IndianRupee, FileText, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 import OwnerLayout from "../components/VenueOwnerDashboard/OwnerLayout";
+import RejectBookingModal from "../components/VenueOwnerDashboard/RejectBookingModal";
 import {
   fetchOwnerBookingsAsync,
   acceptBookingRequestAsync,
@@ -21,12 +22,12 @@ const TABS = [
 
 // Derives a single display status from the two backend status fields
 function resolveDisplayStatus(booking) {
+  if (booking.owner_status === "rejected") return "rejected";
   if (booking.status === "cancelled") return "cancelled";
   const endDate = booking.check_out_date ?? booking.booking_date;
   const isPast = new Date(endDate) < new Date(new Date().toDateString());
   if (booking.owner_status === "accepted" && isPast) return "completed";
   if (booking.owner_status === "accepted") return "confirmed";
-  if (booking.owner_status === "rejected") return "rejected";
   return "pending"; // owner_status === "pending"
 }
 
@@ -337,8 +338,20 @@ function OwnerBookingsPage() {
     dispatch(acceptBookingRequestAsync(id)).then(() => load(activeTab, page));
   };
 
+  const [rejectTarget, setRejectTarget] = useState(null);
+
   const handleReject = (id) => {
-    dispatch(rejectBookingRequestAsync(id)).then(() => load(activeTab, page));
+    setRejectTarget(id);
+  };
+
+  const confirmReject = (rejection_reason) => {
+    if (!rejectTarget) return;
+    dispatch(
+      rejectBookingRequestAsync({ id: rejectTarget, rejection_reason }),
+    ).then(() => {
+      setRejectTarget(null);
+      load(activeTab, page);
+    });
   };
 
   const handleCollectBalance = (id) => {
@@ -490,6 +503,13 @@ function OwnerBookingsPage() {
           </div>
         )}
       </div>
+
+      <RejectBookingModal
+        open={rejectTarget != null}
+        onClose={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+        loading={actionBookingId === rejectTarget}
+      />
     </OwnerLayout>
   );
 }

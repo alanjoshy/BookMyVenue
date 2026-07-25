@@ -20,6 +20,7 @@ from app.services.venue_service import (
     get_my_venues,
     get_venue_by_id,
     get_venues,
+    resubmit_venue_for_approval,
     update_venue,
 )
 
@@ -140,6 +141,15 @@ def update_existing_venue(
     current_user: User = Depends(get_current_venue_owner),
 ):
     return update_venue(db, venue_id, venue, owner_id=current_user.id)
+
+
+@router.post("/{venue_id}/resubmit", response_model=VenueOut)
+def resubmit_venue(
+    venue_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_venue_owner),
+):
+    return resubmit_venue_for_approval(db, venue_id, owner_id=current_user.id)
 
 
 @router.get("/{venue_id}/images", response_model=list[VenueImageOut])

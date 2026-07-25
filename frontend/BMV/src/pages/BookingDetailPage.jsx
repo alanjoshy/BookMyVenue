@@ -10,6 +10,10 @@ import BookingQrCode from "../components/BookingQrCode";
 import ReviewForm from "../components/ReviewForm";
 import { formatBookingPeriod } from "../utils/bookingFormat";
 import { formatPolicyDate } from "../utils/cancellationPolicy";
+import {
+  resolveCustomerBookingStatus,
+  canCustomerPay,
+} from "../utils/bookingStatus";
 
 const PAYMENT_OPTION_LABELS = {
   full: "Paid in full",
@@ -31,8 +35,8 @@ function BookingDetailPage() {
     dispatch(fetchBookingDetailAsync(Number(id)));
   }, [dispatch, id]);
 
-  const awaitingOwnerApproval =
-    current?.status === "booked" && current?.owner_status === "pending";
+  const displayStatus = current ? resolveCustomerBookingStatus(current) : null;
+  const awaitingOwnerApproval = displayStatus === "awaiting_approval";
 
   useEffect(() => {
     if (!awaitingOwnerApproval) return undefined;
@@ -79,11 +83,8 @@ function BookingDetailPage() {
   const policy = current.cancellation_policy;
   const refundPreviewPercent = current.refund_percent_if_cancelled ?? 0;
   const refundPreviewAmount = current.refund_amount_if_cancelled ?? 0;
-  const canPay = current.status === "pending_payment";
-  const awaitingPaymentForQr =
-    current.owner_status === "accepted" && current.status === "pending_payment";
-  const awaitingOwnerApprovalForQr =
-    current.status === "booked" && current.owner_status === "pending";
+  const canPay = canCustomerPay(current);
+  const isRejected = displayStatus === "rejected";
 
   return (
     <div className="max-w-xl space-y-4">
@@ -101,12 +102,29 @@ function BookingDetailPage() {
               <p className="text-sm text-slate-400">{current.venue_location}</p>
             )}
           </div>
-          <StatusBadge status={current.status} />
+          <StatusBadge status={displayStatus} />
         </div>
-        {current.owner_status === "pending" && current.status === "booked" && (
+
+        {awaitingOwnerApproval && (
           <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-            Owner approval pending — your check-in QR will appear here once the venue owner accepts.
+            Booking request sent. Payment unlocks after the venue owner accepts.
+            This page updates automatically.
           </p>
+        )}
+
+        {canPay && (
+          <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+            Owner accepted your request. Pay the full amount or an advance to confirm.
+          </p>
+        )}
+
+        {isRejected && (
+          <div className="text-sm bg-red-50 border border-red-100 rounded-xl p-3">
+            <p className="text-red-700 font-medium text-xs mb-1">Rejected by venue owner</p>
+            <p className="text-red-600">
+              {current.cancellation_reason || "No reason was provided."}
+            </p>
+          </div>
         )}
 
         <div className="grid grid-cols-2 gap-3 text-sm">
@@ -116,7 +134,10 @@ function BookingDetailPage() {
           {current.num_days > 1 && <Row label="Duration" value={`${current.num_days} days`} />}
           {current.payment_status && <Row label="Payment" value={current.payment_status} />}
           {current.payment_option && (
-            <Row label="Payment plan" value={PAYMENT_OPTION_LABELS[current.payment_option] ?? current.payment_option} />
+            <Row
+              label="Payment plan"
+              value={PAYMENT_OPTION_LABELS[current.payment_option] ?? current.payment_option}
+            />
           )}
           {Number(current.amount_paid) > 0 && (
             <Row label="Paid" value={`₹${Number(current.amount_paid).toLocaleString("en-IN")}`} />
@@ -139,14 +160,14 @@ function BookingDetailPage() {
           </div>
         )}
 
-        {current.cancellation_reason && (
+        {!isRejected && current.cancellation_reason && (
           <div className="text-sm bg-rose-50 rounded-xl p-3">
             <p className="text-rose-400 text-xs mb-1">Cancellation reason</p>
             <p className="text-rose-700">{current.cancellation_reason}</p>
           </div>
         )}
 
-        {current.status === "cancelled" && (
+        {current.status === "cancelled" && !isRejected && (
           <div className="text-sm bg-emerald-50 border border-emerald-100 rounded-xl p-3 space-y-1">
             <p className="text-emerald-800 text-xs font-medium">Refund status</p>
             {current.refund_status && (current.refund_amount_if_cancelled ?? 0) > 0 ? (
@@ -195,10 +216,10 @@ function BookingDetailPage() {
               onClick={() => navigate(`/checkout/${current.id}`)}
               className="flex-1 bg-rose-900 hover:bg-rose-950 text-white py-2.5 rounded-xl text-sm font-medium"
             >
-              Complete payment
+              Pay now
             </button>
           )}
-          {canCancel && (
+          {canCancel && !isRejected && (
             <button
               type="button"
               onClick={() => setShowModal(true)}
@@ -223,19 +244,9 @@ function BookingDetailPage() {
         </div>
       )}
 
-      {awaitingOwnerApprovalForQr && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-900 space-y-1">
-          <p className="font-semibold">Payment received — waiting for venue approval</p>
-          <p className="text-blue-800">
-            The venue owner must accept your booking before your check-in QR code is generated.
-            This page will update automatically once approved.
-          </p>
-        </div>
-      )}
-
-      {awaitingPaymentForQr && (
+      {canPay && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
-          Your booking is approved. Complete payment to unlock your check-in QR code.
+          Complete payment (full or advance) to unlock your check-in QR code.
         </div>
       )}
 

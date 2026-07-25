@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Star, Users, IndianRupee, Trash2, PowerOff } from "lucide-react";
+import { MapPin, Star, Users, IndianRupee, Trash2, PowerOff, RefreshCw } from "lucide-react";
 
 const STATUS_BADGE = {
   approved: "bg-emerald-500 text-white",
   pending_approval: "bg-amber-500 text-white",
   pending: "bg-amber-500 text-white",
-  rejected: "bg-gray-400 text-white",
+  rejected: "bg-rose-500 text-white",
 };
 
 const STATUS_LABEL = {
@@ -49,15 +49,29 @@ function ConfirmDialog({ isOpen, title, message, confirmLabel, confirmClassName,
   );
 }
 
-function VenueCard({ venue, onDelete, onDeactivate, deleting, deactivating }) {
+function VenueCard({
+  venue,
+  onDelete,
+  onDeactivate,
+  onResubmit,
+  deleting,
+  deactivating,
+  resubmitting,
+}) {
   const [dialog, setDialog] = useState(null); // null | "delete" | "deactivate"
   const placeholderColor = placeholderColorFor(venue.id);
   const hasRating = venue.average_rating != null && venue.average_rating > 0;
   const isApproved = venue.approval_status === "approved";
-  const isPendingOrRejected =
+  const isRejected = venue.approval_status === "rejected";
+  const isPending =
     venue.approval_status === "pending" ||
-    venue.approval_status === "pending_approval" ||
-    venue.approval_status === "rejected";
+    venue.approval_status === "pending_approval";
+  const isPendingOrRejected = isPending || isRejected;
+  const cover =
+    venue.images?.find((img) => img.is_cover)?.url ||
+    venue.images?.[0]?.url ||
+    venue.image_url ||
+    null;
 
   return (
     <>
@@ -65,8 +79,8 @@ function VenueCard({ venue, onDelete, onDeactivate, deleting, deactivating }) {
         <div
           className="h-40 relative"
           style={
-            venue.image_url
-              ? { backgroundImage: `url(${venue.image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+            cover
+              ? { backgroundImage: `url(${cover})`, backgroundSize: "cover", backgroundPosition: "center" }
               : { background: `linear-gradient(135deg, ${placeholderColor}, ${placeholderColor}cc)` }
           }
         >
@@ -91,6 +105,17 @@ function VenueCard({ venue, onDelete, onDeactivate, deleting, deactivating }) {
             <MapPin size={12} /> {venue.location}
           </p>
 
+          {isRejected && venue.rejection_reason && (
+            <p className="mt-2 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-2.5 py-2">
+              Rejected: {venue.rejection_reason}
+            </p>
+          )}
+          {isRejected && !venue.rejection_reason && (
+            <p className="mt-2 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-2.5 py-2">
+              This venue was rejected. Edit details and request approval again.
+            </p>
+          )}
+
           <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100">
             <div>
               <p className="text-[10px] font-semibold text-gray-400 tracking-wide">CAPACITY</p>
@@ -109,21 +134,34 @@ function VenueCard({ venue, onDelete, onDeactivate, deleting, deactivating }) {
           </div>
 
           <div className="flex items-center gap-2 mt-4">
-            <Link
-              to={`/owner/venues/${venue.id}/manage`}
-              className="flex-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold transition-colors text-center"
-            >
-              Manage
-            </Link>
+            {isApproved && (
+              <Link
+                to={`/owner/venues/${venue.id}/manage`}
+                className="flex-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold transition-colors text-center"
+              >
+                Manage
+              </Link>
+            )}
             <Link
               to={`/owner/venues/${venue.id}/edit`}
               className="flex-1 py-2 rounded-lg border border-rose-200 text-rose-800 hover:bg-rose-50 text-xs font-semibold transition-colors text-center"
             >
-              Edit Details
+              {isRejected ? "Edit & fix" : "Edit Details"}
             </Link>
           </div>
 
-          {/* ── Delete (pending/rejected) or Deactivate (approved) ── */}
+          {isRejected && (
+            <button
+              type="button"
+              onClick={() => onResubmit(venue.id)}
+              disabled={resubmitting}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-rose-900 hover:bg-rose-950 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={resubmitting ? "animate-spin" : ""} />
+              {resubmitting ? "Requesting…" : "Request approval again"}
+            </button>
+          )}
+
           <div className="mt-2">
             {isPendingOrRejected && (
               <button
@@ -149,7 +187,6 @@ function VenueCard({ venue, onDelete, onDeactivate, deleting, deactivating }) {
         </div>
       </div>
 
-      {/* Delete confirmation */}
       <ConfirmDialog
         isOpen={dialog === "delete"}
         title="Delete this venue?"
@@ -160,7 +197,6 @@ function VenueCard({ venue, onDelete, onDeactivate, deleting, deactivating }) {
         onCancel={() => setDialog(null)}
       />
 
-      {/* Deactivate confirmation */}
       <ConfirmDialog
         isOpen={dialog === "deactivate"}
         title="Deactivate this venue?"
@@ -174,7 +210,16 @@ function VenueCard({ venue, onDelete, onDeactivate, deleting, deactivating }) {
   );
 }
 
-function VenuesGrid({ venues, loading, onDelete, onDeactivate, deletingId, deactivatingId }) {
+function VenuesGrid({
+  venues,
+  loading,
+  onDelete,
+  onDeactivate,
+  onResubmit,
+  deletingId,
+  deactivatingId,
+  resubmittingId,
+}) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -193,18 +238,50 @@ function VenuesGrid({ venues, loading, onDelete, onDeactivate, deletingId, deact
     );
   }
 
+  const rejected = venues.filter((v) => v.approval_status === "rejected");
+  const pending = venues.filter(
+    (v) => v.approval_status === "pending" || v.approval_status === "pending_approval",
+  );
+  const approved = venues.filter((v) => v.approval_status === "approved");
+  const ordered = [...rejected, ...pending, ...approved];
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {venues.map((v) => (
-        <VenueCard
-          key={v.id}
-          venue={v}
-          onDelete={onDelete}
-          onDeactivate={onDeactivate}
-          deleting={deletingId === v.id}
-          deactivating={deactivatingId === v.id}
-        />
-      ))}
+    <div className="space-y-4">
+      {(rejected.length > 0 || pending.length > 0) && (
+        <p className="text-xs text-gray-500">
+          {rejected.length > 0 && (
+            <span className="text-rose-700 font-medium">
+              {rejected.length} rejected
+            </span>
+          )}
+          {rejected.length > 0 && pending.length > 0 && " · "}
+          {pending.length > 0 && (
+            <span className="text-amber-700 font-medium">
+              {pending.length} pending approval
+            </span>
+          )}
+          {approved.length > 0 && (
+            <span>
+              {(rejected.length > 0 || pending.length > 0) ? " · " : ""}
+              {approved.length} approved
+            </span>
+          )}
+        </p>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {ordered.map((v) => (
+          <VenueCard
+            key={v.id}
+            venue={v}
+            onDelete={onDelete}
+            onDeactivate={onDeactivate}
+            onResubmit={onResubmit}
+            deleting={deletingId === v.id}
+            deactivating={deactivatingId === v.id}
+            resubmitting={resubmittingId === v.id}
+          />
+        ))}
+      </div>
     </div>
   );
 }

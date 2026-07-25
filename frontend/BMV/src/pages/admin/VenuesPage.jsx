@@ -64,7 +64,7 @@ function VenuesPage() {
     <div>
       <AdminPageHeader
         title="All Venues"
-        subtitle="Create, edit, approve, and block venues"
+        subtitle="Review venue details, create, approve, and block venues"
         action={<LinkButton to="/admin/venues/new">+ Create venue</LinkButton>}
       />
       {error && <p className="text-rose-600 mb-4 text-sm">{error}</p>}
@@ -100,7 +100,14 @@ function VenuesPage() {
         >
           {venues.map((v) => (
             <tr key={v.id} className="hover:bg-slate-50/50">
-              <td className="px-4 py-3 font-medium">{v.name}</td>
+              <td className="px-4 py-3">
+                <div className="font-medium">{v.name}</div>
+                {v.approval_status === "rejected" && v.rejection_reason && (
+                  <p className="text-xs text-rose-600 mt-1 max-w-xs">
+                    Reason: {v.rejection_reason}
+                  </p>
+                )}
+              </td>
               <td className="px-4 py-3">{v.location}</td>
               <td className="px-4 py-3 text-sm text-slate-500">{v.venue_type_name || "—"}</td>
               <td className="px-4 py-3">{v.owner_name || "-"}</td>
@@ -114,10 +121,10 @@ function VenuesPage() {
               <td className="px-4 py-3">
                 <div className="flex gap-3">
                   <Link
-                    to={`/admin/venues/${v.id}/edit`}
+                    to={`/admin/venues/${v.id}`}
                     className="text-blue-600 hover:underline text-xs font-medium"
                   >
-                    Edit
+                    View
                   </Link>
                   {v.is_active ? (
                     <button

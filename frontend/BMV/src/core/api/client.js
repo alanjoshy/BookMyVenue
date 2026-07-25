@@ -12,11 +12,27 @@ const client = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+/** Auth routes that return 401 for bad credentials / intentional logout — never refresh-retry them. */
+const AUTH_NO_REFRESH = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/google",
+  "/auth/logout",
+  "/auth/refresh",
+];
+
+function isAuthNoRefreshUrl(url = "") {
+  return AUTH_NO_REFRESH.some((path) => url.includes(path));
+}
+
 client.interceptors.request.use(
   (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Preserve an Authorization header set by the caller (e.g. logout sends the refresh token).
+    if (!config.headers.Authorization) {
+      const token = getAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -41,11 +57,13 @@ client.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = originalRequest?.url || "";
 
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
-      !originalRequest.url.includes("/auth/refresh")
+      !isAuthNoRefreshUrl(requestUrl)
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -85,14 +103,28 @@ client.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearTokens();
-        window.location.href = "/";
+        const path = window.location.pathname;
+        const onPublicAuthPage =
+          path === "/" ||
+          path === "/login" ||
+          path === "/register" ||
+          path === "/admin/login";
+        if (!onPublicAuthPage) {
+          window.location.href = "/";
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
-    const message = error.response?.data?.detail || "Something went wrong.";
+    const detail = error.response?.data?.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d) => d.msg || d).join(", ")
+          : error.message || "Something went wrong.";
     const status = error.response?.status || 500;
     return Promise.reject({ message, status });
   },

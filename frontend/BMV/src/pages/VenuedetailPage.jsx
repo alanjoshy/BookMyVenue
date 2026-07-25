@@ -77,7 +77,7 @@ function normalizeTime(value) {
   return value.length === 5 ? `${value}:00` : value;
 }
 
-function AvailabilityChecker({ venueId }) {
+function AvailabilityChecker({ venueId, capacity }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -97,37 +97,74 @@ function AvailabilityChecker({ venueId }) {
 
   const todayStr = new Date().toISOString().split("T")[0];
   const formReady = checkInDate && checkInTime && checkOutDate && checkOutTime;
-  const clearAvailability = () => setResult(null);
 
-  const handleCheck = async () => {
-    if (!formReady) return;
+  // Live field validation (computed on every render)
+  let validationError = null;
+  if (checkInDate && checkInDate < todayStr) {
+    validationError = "Check-in date cannot be in the past.";
+  } else if (checkInDate && checkOutDate && checkOutDate < checkInDate) {
+    validationError = "Check-out date must be on or after check-in date.";
+  } else if (
+    formReady &&
+    checkInDate === checkOutDate &&
+    normalizeTime(checkOutTime) <= normalizeTime(checkInTime)
+  ) {
+    validationError = "Check-out time must be after check-in time.";
+  }
+
+  const guestError =
+    guestCount && capacity && Number(guestCount) > Number(capacity)
+      ? `This venue holds up to ${capacity} guests. Reduce the guest count.`
+      : null;
+
+  // Live availability check — debounced, fires automatically once the
+  // date/time range is complete and passes basic validation.
+  useEffect(() => {
+    if (!formReady || validationError) {
+      setResult(null);
+      setChecking(false);
+      setCheckError(null);
+      return;
+    }
+
+    let cancelled = false;
     setChecking(true);
     setResult(null);
     setCheckError(null);
-    try {
-      if (checkOutDate < checkInDate) {
-        setCheckError("Check-out date must be on or after check-in date.");
-        setChecking(false);
-        return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await venueService.checkAvailabilityRange(venueId, {
+          check_in_date: checkInDate,
+          check_in_time: normalizeTime(checkInTime),
+          check_out_date: checkOutDate,
+          check_out_time: normalizeTime(checkOutTime),
+        });
+        if (cancelled) return;
+        setResult(data.available);
+        if (!data.available) {
+          if (data.reason) {
+            setCheckError(data.reason);
+          } else if (data.conflict_date) {
+            setCheckError(`already booked around ${data.conflict_date}`);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setCheckError("Could not check availability. Try again.");
+        }
+      } finally {
+        if (!cancelled) setChecking(false);
       }
-      const check_in_time = normalizeTime(checkInTime);
-      const check_out_time = normalizeTime(checkOutTime);
-      const data = await venueService.checkAvailabilityRange(venueId, {
-        check_in_date: checkInDate,
-        check_in_time,
-        check_out_date: checkOutDate,
-        check_out_time,
-      });
-      setResult(data.available);
-      if (!data.available && data.reason) {
-        setCheckError(data.reason);
-      }
-    } catch {
-      setCheckError("Could not check availability. Try again.");
-    } finally {
-      setChecking(false);
-    }
-  };
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [venueId, formReady, validationError, checkInDate, checkInTime, checkOutDate, checkOutTime]);
+
+  const canBook = result === true && !validationError && !guestError;
 
   const handleBook = async () => {
     if (!isAuthenticated) {
@@ -135,7 +172,7 @@ function AvailabilityChecker({ venueId }) {
       return;
     }
 
-    if (!formReady) return;
+    if (!canBook) return;
 
     const check_in_time = normalizeTime(checkInTime);
     const check_out_time = normalizeTime(checkOutTime);
@@ -156,7 +193,7 @@ function AvailabilityChecker({ venueId }) {
     );
 
     if (createBookingAsync.fulfilled.match(resultAction)) {
-      navigate(`/checkout/${resultAction.payload.id}`);
+      navigate(`/bookings/${resultAction.payload.id}`);
     }
   };
 
@@ -175,7 +212,6 @@ function AvailabilityChecker({ venueId }) {
               const value = e.target.value;
               setCheckInDate(value);
               if (!checkOutDate || value > checkOutDate) setCheckOutDate(value);
-              clearAvailability();
             }}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
           />
@@ -190,7 +226,7 @@ function AvailabilityChecker({ venueId }) {
         <div className="relative">
           <select
             value={checkInTime}
-            onChange={(e) => { setCheckInTime(e.target.value); clearAvailability(); }}
+            onChange={(e) => setCheckInTime(e.target.value)}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 appearance-none bg-white transition-all"
           >
             <option value="">Select a time</option>
@@ -212,7 +248,7 @@ function AvailabilityChecker({ venueId }) {
             type="date"
             min={checkInDate || todayStr}
             value={checkOutDate}
-            onChange={(e) => { setCheckOutDate(e.target.value); clearAvailability(); }}
+            onChange={(e) => setCheckOutDate(e.target.value)}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
           />
           <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -226,7 +262,7 @@ function AvailabilityChecker({ venueId }) {
         <div className="relative">
           <select
             value={checkOutTime}
-            onChange={(e) => { setCheckOutTime(e.target.value); clearAvailability(); }}
+            onChange={(e) => setCheckOutTime(e.target.value)}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 appearance-none bg-white transition-all"
           >
             <option value="">Select a time</option>
@@ -239,62 +275,88 @@ function AvailabilityChecker({ venueId }) {
         </div>
       </div>
 
-      {result !== null && (
-        <div className={`mb-4 px-3 py-2.5 rounded-xl text-sm font-medium ${
-          result
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-            : "bg-red-50 text-red-700 border border-red-100"
-        }`}>
-          {result ? "✓ Available for this stay" : "✗ Not available — try another range"}
+      {/* Live availability status */}
+      {validationError && (
+        <div className="mb-4 px-3 py-2.5 rounded-xl text-sm font-medium text-red-700 bg-red-50 border border-red-100">
+          ⚠ {validationError}
         </div>
       )}
-      {checkError && (
+      {!validationError && checking && (
+        <div className="mb-4 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-50 border border-slate-100 flex items-center gap-2">
+          <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+          Checking availability…
+        </div>
+      )}
+      {!validationError && !checking && result === true && (
+        <div className="mb-4 px-3 py-2.5 rounded-xl text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+          ✓ Available for this stay
+        </div>
+      )}
+      {!validationError && !checking && result === false && (
+        <div className="mb-4 px-3 py-2.5 rounded-xl text-sm font-medium bg-red-50 text-red-700 border border-red-100">
+          ✗ Not available — {checkError || "try different dates or times"}
+        </div>
+      )}
+      {!validationError && !checking && result === null && checkError && (
         <div className="mb-4 px-3 py-2.5 rounded-xl text-sm text-red-600 bg-red-50 border border-red-100">
           {checkError}
         </div>
       )}
 
-      {result === true && (
-        <div className="mb-4 space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-              Event Type <span className="text-slate-300 font-normal normal-case">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={eventType}
-              onChange={(e) => setEventType(e.target.value)}
-              placeholder="e.g. Wedding, Corporate Event"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-              Expected Guests <span className="text-slate-300 font-normal normal-case">(optional)</span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={guestCount}
-              onChange={(e) => setGuestCount(e.target.value)}
-              placeholder="e.g. 150"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-              Notes <span className="text-slate-300 font-normal normal-case">(optional)</span>
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Any special requirements..."
-              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all resize-none"
-            />
-          </div>
+      <div className="mb-4 space-y-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Expected Guests <span className="text-slate-300 font-normal normal-case">(optional)</span>
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={guestCount}
+            onChange={(e) => setGuestCount(e.target.value)}
+            placeholder={capacity ? `Up to ${capacity} guests` : "e.g. 150"}
+            className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 transition-all ${
+              guestError
+                ? "border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100"
+                : "border-slate-200 focus:border-rose-400 focus:ring-rose-100"
+            }`}
+          />
+          {guestError && (
+            <p className="mt-1 text-xs text-red-600">⚠ {guestError}</p>
+          )}
+          {!guestError && capacity && (
+            <p className="mt-1 text-xs text-slate-400">Venue capacity: {capacity} guests</p>
+          )}
         </div>
-      )}
+
+        {result === true && (
+          <>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                Event Type <span className="text-slate-300 font-normal normal-case">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value)}
+                placeholder="e.g. Wedding, Corporate Event"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                Notes <span className="text-slate-300 font-normal normal-case">(optional)</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Any special requirements..."
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all resize-none"
+              />
+            </div>
+          </>
+        )}
+      </div>
 
       {bookingError && (
         <div className="mb-3 px-3 py-2.5 rounded-xl text-sm text-red-600 bg-red-50 border border-red-100">
@@ -303,31 +365,24 @@ function AvailabilityChecker({ venueId }) {
       )}
 
       <button
-        onClick={handleCheck}
-        disabled={!formReady || checking}
-        className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl text-sm font-semibold transition-colors mb-2.5 flex items-center justify-center gap-2"
-      >
-        {checking ? "Checking..." : <>Check Availability <ArrowRightIcon className="w-3.5 h-3.5" /></>}
-      </button>
-
-      <button
         onClick={handleBook}
-        disabled={result !== true || bookingLoading}
-        className="w-full border border-slate-200 hover:border-rose-300 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 hover:text-rose-700 py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+        disabled={!canBook || bookingLoading || checking}
+        className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
       >
         {bookingLoading
-          ? <><span className="w-4 h-4 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" /> Sending request…</>
-          : "Request to Book"
+          ? <><span className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" /> Sending request…</>
+          : <>Request to Book <ArrowRightIcon className="w-3.5 h-3.5" /></>
         }
       </button>
 
       <p className="text-center text-xs text-slate-400 mt-3">
-        {isAuthenticated
-          ? result === true
-            ? "Confirm availability first, then send your request."
-            : "Check availability to enable booking."
-          : "Sign in to book this venue."
-        }
+        {!isAuthenticated
+          ? "Sign in to book this venue."
+          : !formReady
+            ? "Pick your dates and times — availability is checked automatically."
+            : canBook
+              ? "This slot is free. Send your booking request."
+              : "Booking is enabled once the slot is available and details are valid."}
       </p>
     </>
   );
@@ -795,7 +850,7 @@ function VenueDetailPage() {
                   )}
                 </div>
               </div>
-              <AvailabilityChecker venueId={venue.id} />
+              <AvailabilityChecker venueId={venue.id} capacity={venue.capacity} />
             </div>
           </div>
         </div>

@@ -23,8 +23,15 @@ export const venueOwnerService = {
     return res.data;
   },
 
-  async rejectBookingRequest(id) {
-    const res = await client.patch(`/venue-owners/dashboard/bookings/${id}/reject`);
+  async rejectBookingRequest(id, rejection_reason) {
+    const body =
+      rejection_reason != null && rejection_reason !== ""
+        ? { rejection_reason }
+        : {};
+    const res = await client.patch(
+      `/venue-owners/dashboard/bookings/${id}/reject`,
+      body,
+    );
     return res.data;
   },
 
@@ -68,6 +75,11 @@ export const venueOwnerService = {
 
   async updateVenue(id, payload) {
     const res = await client.put(`/venues/${id}`, payload);
+    return res.data;
+  },
+
+  async resubmitVenue(id) {
+    const res = await client.post(`/venues/${id}/resubmit`);
     return res.data;
   },
 

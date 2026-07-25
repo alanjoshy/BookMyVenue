@@ -30,7 +30,7 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import PendingVenuesPage from "./pages/admin/PendingVenuesPage";
 import AdminVenuesPage from "./pages/admin/VenuesPage";
 import VenueCreatePage from "./pages/admin/VenueCreatePage";
-import AdminVenueEditPage from "./pages/admin/VenueEditPage";
+import AdminVenueDetailPage from "./pages/admin/VenueDetailPage";
 import AdminBookingsPage from "./pages/admin/BookingsPage";
 import AdminUsersPage from "./pages/admin/UsersPage";
 import UserCreatePage from "./pages/admin/UserCreatePage";
@@ -97,7 +97,7 @@ function App() {
               <Route path="pending" element={<PendingVenuesPage />} />
               <Route path="venues" element={<AdminVenuesPage />} />
               <Route path="venues/new" element={<VenueCreatePage />} />
-              <Route path="venues/:id/edit" element={<AdminVenueEditPage />} />
+              <Route path="venues/:id" element={<AdminVenueDetailPage />} />
               <Route path="bookings" element={<AdminBookingsPage />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="users/new" element={<UserCreatePage />} />

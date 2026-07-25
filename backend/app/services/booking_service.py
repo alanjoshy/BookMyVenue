@@ -189,6 +189,15 @@ def create_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Venue is not available for booking",
         )
+    if (
+        data.guest_count is not None
+        and venue.capacity is not None
+        and data.guest_count > venue.capacity
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Guest count exceeds venue capacity of {venue.capacity}",
+        )
 
     start_dt, end_dt, num_days = _validate_booking_interval(data)
 
@@ -419,7 +428,25 @@ def get_my_bookings(
     limit = max(min(limit, 100), 1)
 
     base_query = db.query(Booking).filter(Booking.user_id == current_user.id)
-    if status:
+    if status == "rejected":
+        base_query = base_query.filter(Booking.owner_status == "rejected")
+    elif status == "cancelled":
+        base_query = base_query.filter(
+            Booking.status == "cancelled",
+            Booking.owner_status != "rejected",
+        )
+    elif status == "pending_payment":
+        # Ready to pay: owner already accepted
+        base_query = base_query.filter(
+            Booking.status == "pending_payment",
+            Booking.owner_status == "accepted",
+        )
+    elif status == "awaiting_approval":
+        base_query = base_query.filter(
+            Booking.status == "pending_payment",
+            Booking.owner_status == "pending",
+        )
+    elif status:
         base_query = base_query.filter(Booking.status == status)
 
     total = base_query.count()

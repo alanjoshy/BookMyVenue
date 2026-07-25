@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Users } from "lucide-react";
 import {
   acceptBookingRequestAsync,
   rejectBookingRequestAsync,
 } from "../../modules/venueOwner/venueOwnerSlice";
+import RejectBookingModal from "./RejectBookingModal";
 
 function formatDate(dateStr) {
   const d = new Date(dateStr);
@@ -13,9 +15,17 @@ function formatDate(dateStr) {
 
 function RecentBookingRequests({ requests, loading }) {
   const dispatch = useDispatch();
+  const actionBookingId = useSelector((state) => state.venueOwner.loading.actionBooking);
+  const [rejectTarget, setRejectTarget] = useState(null);
 
   const handleAccept = (id) => dispatch(acceptBookingRequestAsync(id));
-  const handleReject = (id) => dispatch(rejectBookingRequestAsync(id));
+
+  const confirmReject = (rejection_reason) => {
+    if (!rejectTarget) return;
+    dispatch(
+      rejectBookingRequestAsync({ id: rejectTarget, rejection_reason }),
+    ).then(() => setRejectTarget(null));
+  };
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm">
@@ -90,7 +100,7 @@ function RecentBookingRequests({ requests, loading }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleReject(req.id)}
+                    onClick={() => setRejectTarget(req.id)}
                     className="px-3.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 text-xs font-semibold transition-colors"
                   >
                     Reject
@@ -110,6 +120,13 @@ function RecentBookingRequests({ requests, loading }) {
           </div>
         </>
       )}
+
+      <RejectBookingModal
+        open={rejectTarget != null}
+        onClose={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+        loading={actionBookingId === rejectTarget}
+      />
     </div>
   );
 }

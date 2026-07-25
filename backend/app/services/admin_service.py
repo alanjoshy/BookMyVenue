@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.booking import Booking
 from app.models.payment import Payment
@@ -25,6 +25,8 @@ def _bookings_covering_day(db: Session, day) -> int:
 
 def _venue_to_admin_out(venue: Venue, owner_name: str | None = None) -> dict:
     venue_type = getattr(venue, "venue_type", None)
+    images = list(getattr(venue, "images", None) or [])
+    amenities = list(getattr(venue, "amenities", None) or [])
     return {
         "id": venue.id,
         "owner_id": venue.owner_id,
@@ -36,11 +38,26 @@ def _venue_to_admin_out(venue: Venue, owner_name: str | None = None) -> dict:
         "venue_type_name": venue_type.name if venue_type else None,
         "capacity": venue.capacity,
         "image_url": venue.image_url,
+        "images": [
+            {
+                "id": img.id,
+                "url": img.url,
+                "sort_order": img.sort_order or 0,
+                "is_cover": bool(img.is_cover),
+            }
+            for img in images
+        ],
+        "amenities": [{"id": a.id, "name": a.name} for a in amenities],
         "google_maps_url": venue.google_maps_url,
         "google_review_url": venue.google_review_url,
         "description": venue.description,
         "approval_status": venue.approval_status,
         "rejection_reason": venue.rejection_reason,
+        "refund_50_days_before": venue.refund_50_days_before,
+        "refund_25_days_before": venue.refund_25_days_before,
+        "cancel_cutoff_days_before": venue.cancel_cutoff_days_before,
+        "advance_percent": venue.advance_percent,
+        "allow_pay_at_venue": venue.allow_pay_at_venue,
         "is_active": venue.is_active,
         "created_at": venue.created_at,
         "updated_at": venue.updated_at,
@@ -116,7 +133,11 @@ def _ensure_owner_profile(
 def _get_venue_or_404(db: Session, venue_id: int) -> Venue:
     venue = (
         db.query(Venue)
-        .options(joinedload(Venue.venue_type))
+        .options(
+            joinedload(Venue.venue_type),
+            selectinload(Venue.images),
+            selectinload(Venue.amenities),
+        )
         .filter(Venue.id == venue_id)
         .first()
     )
@@ -273,21 +294,25 @@ def get_dashboard_stats(db: Session) -> dict:
 
 
 def get_pending_venues(db: Session, skip: int = 0, limit: int = 20) -> list[dict]:
-    rows = (
-        db.query(Venue, User.name)
-        .join(User, Venue.owner_id == User.id)
+    venues = (
+        db.query(Venue)
+        .options(
+            joinedload(Venue.venue_type),
+            selectinload(Venue.images),
+            selectinload(Venue.amenities),
+        )
         .filter(Venue.approval_status == "pending")
         .order_by(Venue.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
-    results = []
-    for venue, owner_name in rows:
-        if venue.venue_type_id and venue.venue_type is None:
-            db.refresh(venue, attribute_names=["venue_type"])
-        results.append(_venue_to_admin_out(venue, owner_name))
-    return results
+    owner_ids = {v.owner_id for v in venues}
+    owners = {
+        u.id: u.name
+        for u in db.query(User).filter(User.id.in_(owner_ids)).all()
+    } if owner_ids else {}
+    return [_venue_to_admin_out(v, owners.get(v.owner_id)) for v in venues]
 
 
 def approve_venue(db: Session, venue_id: int) -> dict:
@@ -319,16 +344,20 @@ def get_all_venues(
     skip: int = 0,
     limit: int = 20,
 ) -> list[dict]:
-    query = db.query(Venue, User.name).join(User, Venue.owner_id == User.id)
+    query = db.query(Venue).options(
+        joinedload(Venue.venue_type),
+        selectinload(Venue.images),
+        selectinload(Venue.amenities),
+    )
     if approval_status:
         query = query.filter(Venue.approval_status == approval_status)
-    rows = query.order_by(Venue.created_at.desc()).offset(skip).limit(limit).all()
-    results = []
-    for venue, owner_name in rows:
-        if venue.venue_type_id:
-            _ = venue.venue_type
-        results.append(_venue_to_admin_out(venue, owner_name))
-    return results
+    venues = query.order_by(Venue.created_at.desc()).offset(skip).limit(limit).all()
+    owner_ids = {v.owner_id for v in venues}
+    owners = {
+        u.id: u.name
+        for u in db.query(User).filter(User.id.in_(owner_ids)).all()
+    } if owner_ids else {}
+    return [_venue_to_admin_out(v, owners.get(v.owner_id)) for v in venues]
 
 
 def create_venue_admin(db: Session, data: VenueAdminCreate) -> dict:
@@ -401,6 +430,13 @@ def update_venue_admin(db: Session, venue_id: int, data: VenueAdminUpdate) -> di
         venue.description = data.description
     if data.approval_status is not None:
         venue.approval_status = data.approval_status
+        if data.approval_status == "approved":
+            venue.rejection_reason = None
+        elif data.approval_status == "rejected":
+            if data.rejection_reason is not None:
+                venue.rejection_reason = data.rejection_reason or None
+    elif data.rejection_reason is not None:
+        venue.rejection_reason = data.rejection_reason or None
     if data.is_active is not None:
         venue.is_active = data.is_active
 

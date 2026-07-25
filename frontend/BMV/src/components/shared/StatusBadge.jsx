@@ -1,5 +1,6 @@
 const STATUS_STYLES = {
   pending_payment: "bg-amber-50 text-amber-700 border-amber-200",
+  awaiting_approval: "bg-blue-50 text-blue-700 border-blue-200",
   booked: "bg-emerald-50 text-emerald-700 border-emerald-200",
   confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
   cancelled: "bg-slate-100 text-slate-500 border-slate-200",
@@ -10,6 +11,7 @@ const STATUS_STYLES = {
 
 const STATUS_LABELS = {
   pending_payment: "Pending payment",
+  awaiting_approval: "Awaiting approval",
   booked: "Confirmed",
   confirmed: "Confirmed",
   cancelled: "Cancelled",

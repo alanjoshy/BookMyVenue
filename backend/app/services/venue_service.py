@@ -279,12 +279,39 @@ def update_venue(db: Session, venue_id: int, venue_data, owner_id: int):
     venue.advance_percent = venue_data.advance_percent
     venue.allow_pay_at_venue = venue_data.allow_pay_at_venue
 
+    # Editing a rejected venue sends it back into the admin review queue.
+    if venue.approval_status == "rejected":
+        venue.approval_status = "pending"
+        venue.rejection_reason = None
+
     # The gallery owns the cover image, so a venue with images ignores any
     # image_url in the payload and keeps mirroring its cover row instead.
     existing_images = sync_cover(db, venue)
     if not existing_images and venue_data.image_url:
         seed_gallery(db, venue, [venue_data.image_url])
 
+    db.commit()
+    return _fetch_full(db, venue_id)
+
+
+def resubmit_venue_for_approval(db: Session, venue_id: int, owner_id: int) -> Venue:
+    venue = db.query(Venue).filter(Venue.id == venue_id).first()
+
+    if not venue:
+        raise HTTPException(status_code=404, detail="Venue not found")
+
+    if venue.owner_id != owner_id:
+        raise HTTPException(status_code=403, detail="You don't have permission to update this venue")
+
+    if venue.approval_status != "rejected":
+        raise HTTPException(
+            status_code=400,
+            detail="Only rejected venues can be resubmitted for approval",
+        )
+
+    venue.approval_status = "pending"
+    venue.rejection_reason = None
+    venue.updated_at = datetime.now(timezone.utc)
     db.commit()
     return _fetch_full(db, venue_id)
 

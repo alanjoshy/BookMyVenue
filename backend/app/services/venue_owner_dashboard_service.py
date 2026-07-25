@@ -113,6 +113,7 @@ def get_booking_requests(db: Session, owner_id: int) -> list[dict]:
 def _get_owned_booking_or_404(db: Session, booking_id: int, owner_id: int) -> Booking:
     booking = (
         db.query(Booking)
+        .options(joinedload(Booking.venue))
         .join(Venue, Booking.venue_id == Venue.id)
         .filter(Booking.id == booking_id, Venue.owner_id == owner_id)
         .first()
@@ -198,11 +199,17 @@ def verify_check_in(db: Session, owner_id: int, check_in_token: str) -> dict:
     }
 
 
-def reject_booking_request(db: Session, booking_id: int, owner_id: int) -> Booking:
+def reject_booking_request(
+    db: Session,
+    booking_id: int,
+    owner_id: int,
+    rejection_reason: str | None = None,
+) -> Booking:
     booking = _get_owned_booking_or_404(db, booking_id, owner_id)
     booking.owner_status = "rejected"
     booking.status = "cancelled"
-    booking.cancellation_reason = "Rejected by venue owner"
+    reason = (rejection_reason or "").strip()
+    booking.cancellation_reason = reason or "Rejected by venue owner"
     booking.cancelled_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(booking)

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 import OwnerLayout from "../components/VenueOwnerDashboard/OwnerLayout";
+import RejectBookingModal from "../components/VenueOwnerDashboard/RejectBookingModal";
 import {
   fetchVenueByIdAsync,
   fetchVenueBookingsAsync,
@@ -31,12 +32,12 @@ const APPROVAL_LABEL = {
 
 
 function resolveDisplayStatus(booking) {
+  if (booking.owner_status === "rejected") return "rejected";
   if (booking.status === "cancelled") return "cancelled";
   const endDate = booking.check_out_date ?? booking.booking_date;
   const isPast = new Date(endDate) < new Date(new Date().toDateString());
   if (booking.owner_status === "accepted" && isPast) return "completed";
   if (booking.owner_status === "accepted") return "confirmed";
-  if (booking.owner_status === "rejected") return "rejected";
   return "pending";
 }
 
@@ -227,14 +228,23 @@ function VenueBookingsSection({ venueId }) {
   const handleAccept = (id) => {
     dispatch(acceptBookingRequestAsync(id)).then(() => load(activeTab, page));
   };
-  const handleReject = (id) => {
-    dispatch(rejectBookingRequestAsync(id)).then(() => load(activeTab, page));
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const handleReject = (id) => setRejectTarget(id);
+  const confirmReject = (rejection_reason) => {
+    if (!rejectTarget) return;
+    dispatch(
+      rejectBookingRequestAsync({ id: rejectTarget, rejection_reason }),
+    ).then(() => {
+      setRejectTarget(null);
+      load(activeTab, page);
+    });
   };
 
   const start = total === 0 ? 0 : (page - 1) * limit + 1;
   const end   = Math.min(page * limit, total);
 
   return (
+    <>
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
       {/* Section header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -375,6 +385,14 @@ function VenueBookingsSection({ venueId }) {
         </div>
       )}
     </div>
+
+    <RejectBookingModal
+      open={rejectTarget != null}
+      onClose={() => setRejectTarget(null)}
+      onConfirm={confirmReject}
+      loading={actionBookingId === rejectTarget}
+    />
+    </>
   );
 }
 

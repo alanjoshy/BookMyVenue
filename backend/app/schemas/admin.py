@@ -8,6 +8,22 @@ class VenueRejectRequest(BaseModel):
     rejection_reason: Optional[str] = None
 
 
+class VenueAdminImageOut(BaseModel):
+    id: int
+    url: str
+    sort_order: int = 0
+    is_cover: bool = False
+
+    model_config = {"from_attributes": True}
+
+
+class VenueAdminAmenityOut(BaseModel):
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
 class VenueAdminOut(BaseModel):
     id: int
     owner_id: int
@@ -19,11 +35,18 @@ class VenueAdminOut(BaseModel):
     venue_type_name: Optional[str] = None
     capacity: Optional[int] = None
     image_url: Optional[str] = None
+    images: list[VenueAdminImageOut] = []
+    amenities: list[VenueAdminAmenityOut] = []
     google_maps_url: Optional[str] = None
     google_review_url: Optional[str] = None
     description: Optional[str] = None
     approval_status: str
     rejection_reason: Optional[str] = None
+    refund_50_days_before: Optional[int] = None
+    refund_25_days_before: Optional[int] = None
+    cancel_cutoff_days_before: Optional[int] = None
+    advance_percent: Optional[int] = None
+    allow_pay_at_venue: Optional[bool] = None
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -57,6 +80,7 @@ class VenueAdminUpdate(BaseModel):
     google_review_url: Optional[str] = None
     description: Optional[str] = None
     approval_status: Optional[Literal["pending", "approved", "rejected"]] = None
+    rejection_reason: Optional[str] = None
     is_active: Optional[bool] = None
 
 

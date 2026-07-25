@@ -58,9 +58,12 @@ export const acceptBookingRequestAsync = createAsyncThunk(
 
 export const rejectBookingRequestAsync = createAsyncThunk(
   "venueOwner/rejectBookingRequest",
-  async (id, { rejectWithValue }) => {
+  async (arg, { rejectWithValue }) => {
     try {
-      return await venueOwnerService.rejectBookingRequest(id);
+      const id = typeof arg === "object" ? arg.id : arg;
+      const rejection_reason =
+        typeof arg === "object" ? arg.rejection_reason : undefined;
+      return await venueOwnerService.rejectBookingRequest(id, rejection_reason);
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -116,6 +119,17 @@ export const updateVenueAsync = createAsyncThunk(
   async ({ id, payload }, { rejectWithValue }) => {
     try {
       return await venueOwnerService.updateVenue(id, payload);
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
+export const resubmitVenueAsync = createAsyncThunk(
+  "venueOwner/resubmitVenue",
+  async (id, { rejectWithValue }) => {
+    try {
+      return await venueOwnerService.resubmitVenue(id);
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -429,7 +443,8 @@ const venueOwnerSlice = createSlice({
       })
 
       .addCase(rejectBookingRequestAsync.pending, (state, action) => {
-        state.loading.actionBooking = action.meta.arg;
+        const arg = action.meta.arg;
+        state.loading.actionBooking = typeof arg === "object" ? arg.id : arg;
       })
       .addCase(rejectBookingRequestAsync.fulfilled, (state, action) => {
         state.loading.actionBooking = null;
@@ -513,6 +528,18 @@ const venueOwnerSlice = createSlice({
       })
       .addCase(updateVenueAsync.rejected, (state, action) => {
         state.loading.updatingVenue = false;
+        state.error = action.payload;
+      })
+
+      .addCase(resubmitVenueAsync.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(resubmitVenueAsync.fulfilled, (state, action) => {
+        state.activeVenue = action.payload;
+        const idx = state.venues.findIndex((v) => v.id === action.payload.id);
+        if (idx !== -1) state.venues[idx] = action.payload;
+      })
+      .addCase(resubmitVenueAsync.rejected, (state, action) => {
         state.error = action.payload;
       })
 

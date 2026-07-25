@@ -13,6 +13,7 @@ import {
   linkVenueAmenityAsync,
   deleteVenueAsync,
   deactivateVenueAsync,
+  resubmitVenueAsync,
   clearVenueOwnerError,
 } from "../modules/venueOwner/venueOwnerSlice";
 
@@ -21,6 +22,7 @@ function OwnerVenuesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [deactivatingId, setDeactivatingId] = useState(null);
+  const [resubmittingId, setResubmittingId] = useState(null);
 
   const { venues, venueTypes, amenities, loading, error } = useSelector(
     (state) => state.venueOwner,
@@ -64,6 +66,12 @@ function OwnerVenuesPage() {
     setDeactivatingId(null);
   };
 
+  const handleResubmit = async (id) => {
+    setResubmittingId(id);
+    await dispatch(resubmitVenueAsync(id));
+    setResubmittingId(null);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     dispatch(clearVenueOwnerError());
@@ -92,8 +100,10 @@ function OwnerVenuesPage() {
         loading={loading.venues}
         onDelete={handleDelete}
         onDeactivate={handleDeactivate}
+        onResubmit={handleResubmit}
         deletingId={deletingId}
         deactivatingId={deactivatingId}
+        resubmittingId={resubmittingId}
       />
 
       <AddVenueModal

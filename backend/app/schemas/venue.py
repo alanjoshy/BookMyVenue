@@ -97,6 +97,7 @@ class VenueOut(BaseModel):
     google_review_url: Optional[str] = None
     price_per_day: float
     approval_status: str
+    rejection_reason: Optional[str] = None
     venue_type: Optional[VenueTypeOut] = None
     amenities: list[AmenityOut] = []
     description: Optional[str] = None
