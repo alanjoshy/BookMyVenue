@@ -5,6 +5,7 @@ import paymentReducer from "../modules/payments/paymentSlice";
 import venueOwnerReducer from "../modules/venueOwner/venueOwnerSlice";
 import { isAuthenticated } from "../core/auth/tokenStorage";
 import reviewReducer from "../modules/reviews/reviewSlice"
+import venuesReducer from "../modules/venues/venuesSlice";
 
 const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ const store = configureStore({
     payments: paymentReducer,
     venueOwner: venueOwnerReducer,
     reviews: reviewReducer,
+    venues: venuesReducer,
   },
 });
 

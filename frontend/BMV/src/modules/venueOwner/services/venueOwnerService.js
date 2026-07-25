@@ -50,11 +50,11 @@ export const venueOwnerService = {
   },
 
   async getAvailabilityCalendar({ month, venue_id } = {}) {
-     const params = { month };
-     if (venue_id && venue_id !== "all") params.venue_id = venue_id;
-     const res = await client.get("/venue-owners/dashboard/availability", { params });
-     return res.data;
-   },
+    const params = { month };
+    if (venue_id && venue_id !== "all") params.venue_id = venue_id;
+    const res = await client.get("/venue-owners/dashboard/availability", { params });
+    return res.data;
+  },
 
   async getMyVenues() {
     const res = await client.get("/venue-owners/dashboard/venues");
@@ -62,7 +62,7 @@ export const venueOwnerService = {
   },
 
   async getVenueById(id) {
-    const res = await client.get(`/venues/${id}`);
+    const res = await client.get(`/venue-owners/dashboard/venues/${id}`);
     return res.data;
   },
 

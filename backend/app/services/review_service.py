@@ -275,3 +275,12 @@ def add_or_update_reply(db: Session, review_id: int, owner: User, reply_text: st
         "owner_reply": review.owner_reply,
         "replied_at": review.replied_at,
     }
+    
+    
+def get_public_reviews(db: Session, limit: int = 6):
+    return (
+        db.query(Review)
+        .order_by(Review.created_at.desc())
+        .limit(limit)
+        .all()
+    )

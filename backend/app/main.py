@@ -48,29 +48,25 @@ async def lifespan(app: FastAPI):
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         logger.info("Database is connected")
-
-        db = SessionLocal()
-        try:
-            seed_amenities(db)
-            logger.info("Amenities seeded successfully")
-        finally:
-            db.close()
-
     except Exception as exc:
         logger.error("Database connection failed: %s", exc)
         raise
-
+ 
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created/verified")
+ 
     seed_db = SessionLocal()
     try:
         seed_venue_types(seed_db)
         seed_amenities(seed_db)
+        logger.info("Seeds applied successfully")
     finally:
         seed_db.close()
-
+ 
     yield
 
 
-Base.metadata.create_all(bind=engine)
+
 
 app = FastAPI(
     title="BookMyVenue API",

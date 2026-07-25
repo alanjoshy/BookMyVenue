@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import date, time, datetime
 from typing import Optional
 
@@ -31,7 +31,7 @@ class BookingOut(BaseModel):
     owner_status: str
     amount: float
     payment_option: Optional[str] = None
-    amount_paid: float = 0
+    amount_paid: Optional[float] = 0.0
     balance_due: Optional[float] = None
     created_at: datetime
     model_config = {"from_attributes": True}
@@ -78,7 +78,7 @@ class BookingListItemOut(BaseModel):
     owner_status: str
     amount: float
     payment_option: Optional[str] = None
-    amount_paid: float = 0
+    amount_paid: Optional[float] = 0.0
     balance_due: Optional[float] = None
     payment_status: Optional[str] = None
     can_review: bool = False
@@ -141,7 +141,7 @@ class OwnerBookingOut(BaseModel):
     owner_status: str
     amount: float
     payment_option: Optional[str] = None
-    amount_paid: float = 0
+    amount_paid: Optional[float] = 0.0
     balance_due: Optional[float] = None
     created_at: datetime
 

@@ -1,11 +1,12 @@
 from app.models.venue_owner import VenueOwner
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
 from app.db.deps import get_db
 from app.core.security import get_current_venue_owner
 from app.models.user import User
+from app.models.venue import Venue
 
 from app.schemas.venue import VenueOut
 from app.schemas.review import ReviewOut
@@ -26,6 +27,7 @@ from app.services import venue_owner_dashboard_service as dashboard_service
 from app.services.venue_service import get_my_venues
 from app.services.review_service import get_recent_reviews_for_owner, get_review_dashboard_data
 from app.services.notification_service import get_notifications_for_user
+from fastapi import HTTPException, status
 
 
 router = APIRouter(prefix="/venue-owners/dashboard", tags=["Venue Owner Dashboard"])
@@ -49,6 +51,7 @@ def owner_all_bookings(
     current_user: User = Depends(get_current_venue_owner),
 ):
     return booking_service.get_owner_bookings(db, current_user, tab, page, limit, venue_id)
+
 
 @router.get("/bookings/requests", response_model=list[BookingRequestOut])
 def booking_requests(
@@ -130,6 +133,26 @@ def my_venues(
     current_user: User = Depends(get_current_venue_owner),
 ):
     return get_my_venues(db, current_user)
+
+
+@router.get("/venues/{venue_id}", response_model=VenueOut)
+def get_my_venue_by_id(
+    venue_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_venue_owner),
+):
+    venue = (
+        db.query(Venue)
+        .options(joinedload(Venue.amenities), joinedload(Venue.venue_type))
+        .filter(Venue.id == venue_id, Venue.owner_id == current_user.id)
+        .first()
+    )
+    if not venue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Venue not found or you do not own this venue.",
+        )
+    return venue
 
 
 @router.get("/revenue", response_model=RevenueOverviewOut)

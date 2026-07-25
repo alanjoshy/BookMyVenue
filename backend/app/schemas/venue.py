@@ -108,8 +108,8 @@ class VenueOut(BaseModel):
     refund_50_days_before: Optional[int] = None
     refund_25_days_before: Optional[int] = None
     cancel_cutoff_days_before: Optional[int] = None
-    advance_percent: int = 30
-    allow_pay_at_venue: bool = True
+    advance_percent: Optional[int] = 30
+    allow_pay_at_venue: Optional[bool] = True
     created_at: datetime
 
     model_config = {"from_attributes": True}
