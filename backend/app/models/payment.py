@@ -18,7 +18,12 @@ class Payment(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="INR")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="created")
+    payment_type: Mapped[str] = mapped_column(String(20), nullable=False, default="full")
     gateway: Mapped[str] = mapped_column(String(30), nullable=False, default="razorpay")
+    gateway_order_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    gateway_payment_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    gateway_signature: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     failure_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -32,5 +37,9 @@ class Payment(Base):
         CheckConstraint(
             "status IN ('created', 'paid', 'failed', 'refunded', 'refund_pending')",
             name="ck_payment_status",
+        ),
+        CheckConstraint(
+            "payment_type IN ('full', 'advance', 'balance', 'pay_at_venue')",
+            name="ck_payment_type",
         ),
     )
