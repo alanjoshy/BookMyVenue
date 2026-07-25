@@ -1,14 +1,10 @@
-<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchPublicVenuesAsync } from "../modules/venues/venuesSlice";
 import { reviewService } from "../modules/reviews/services/reviewService";
-import { logoutUserAsync } from "../modules/auth/authSlice";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
-
-
 
 function StarIcon({ filled = true, className = "w-4 h-4" }) {
   return (
@@ -42,7 +38,6 @@ function ArrowRightIcon({ className = "w-4 h-4" }) {
     </svg>
   );
 }
-
 
 function FeaturedVenueCard({ venue }) {
   return (
@@ -145,65 +140,123 @@ function ReviewCard({ review }) {
   );
 }
 
-=======
-import { Link } from "react-router-dom";
-import { useSelector } from "react-redux";
-import heroImage from "../assets/hero.png";
-
-const STEPS = [
-  {
-    step: "1",
-    title: "Browse venues",
-    text: "Search approved venues by name, location, and type.",
-  },
-  {
-    step: "2",
-    title: "Book your slot",
-    text: "Pick a date and time, check availability, and reserve instantly.",
-  },
-  {
-    step: "3",
-    title: "Pay & track",
-    text: "Complete checkout and follow your order from one place.",
-  },
-];
->>>>>>> 7397f30aa734e466506d74299979af83f7cd2b3a
-
 const STATS = [
-  { value: "10,000+", label: "Happy customers" },
-  { value: "2,500+", label: "Venues listed" },
-  { value: "15,000+", label: "Bookings completed" },
+  { value: "1,000+", label: "Verified Venues" },
+  { value: "25K+", label: "Happy Customers" },
+  { value: "5,000+", label: "Successful Bookings" },
+  { value: "4.8★", label: "Average Rating" },
 ];
 
-const CUSTOMER_FEATURES = [
-  "Search and filter venues by location",
-  "Real-time slot availability",
-  "Secure checkout and payments",
-  "Order history and profile management",
+const HOW_IT_WORKS = [
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    ),
+    title: "Search",
+    text: "Find the perfect venue based on your needs, location, and budget.",
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+    ),
+    title: "Check",
+    text: "Check availability & view detailed amenities before deciding.",
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905a3.61 3.61 0 01-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+      </svg>
+    ),
+    title: "Book",
+    text: "Send your booking request and secure the date instantly.",
+  },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+      </svg>
+    ),
+    title: "Celebrate",
+    text: "Confirm and enjoy your stress-free event.",
+  },
 ];
 
-const OWNER_FEATURES = [
-  "List and manage your venues",
-  "Accept or reject booking requests",
-  "Owner dashboard with booking overview",
-  "Revenue and calendar insights",
+const WHY_FEATURES = [
+  {
+    icon: "✓",
+    title: "Verified & Trusted",
+    text: "Every single venue on our platform undergoes rigorous quality checks.",
+  },
+  {
+    icon: "₹",
+    title: "Best Price Guarantee",
+    text: "Find the venue at the cheapest price offered. We match any lower instance instantly.",
+  },
+  {
+    icon: "📍",
+    title: "Easy & Secure Booking",
+    text: "Safe, seamless payment process with instant confirmation of your booking.",
+  },
+  {
+    icon: "💬",
+    title: "24/7 Customer Support",
+    text: "Our dedicated concierge team is always available to assist with your plans.",
+  },
+  {
+    icon: "0",
+    title: "No Hidden Charges",
+    text: "Transparency is our core value. What you see is exactly what you pay.",
+  },
+  {
+    icon: "🔔",
+    title: "Instant Notifications",
+    text: "Get real-time updates on your booking status via SMS and email.",
+  },
 ];
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 7397f30aa734e466506d74299979af83f7cd2b3a
 function LandingPage() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { list: venues, isLoadingList } = useSelector((state) => state.venues);
   const isOwner = user?.is_venue_owner;
-  const isAdmin = user?.role === "admin";
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  useEffect(() => {
+    dispatch(fetchPublicVenuesAsync({ limit: 4 }));
+  }, [dispatch]);
+
+  useEffect(() => {
+    reviewService
+      .fetchPublicReviews(6)
+      .then(setReviews)
+      .catch(() => setReviews([]))
+      .finally(() => setReviewsLoading(false));
+  }, []);
+
+  const handleListVenue = () => {
+    if (!isAuthenticated) {
+      navigate("/register-venue-owner");
+    } else if (isOwner) {
+      navigate("/owner/venues");
+    } else {
+      navigate("/register-venue-owner");
+    }
+  };
 
   return (
-<<<<<<< HEAD
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col font-sans">
       <Navbar activePage="home" />
 
       <main className="flex-1">
+        
         <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-rose-950 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-rose-500 rounded-full blur-3xl" />
@@ -239,6 +292,7 @@ function LandingPage() {
           </div>
         </section>
 
+        
         <section className="mx-auto max-w-7xl px-4 -mt-6 relative z-10">
           <div className="bg-rose-700 rounded-2xl shadow-xl shadow-rose-900/20 grid grid-cols-2 md:grid-cols-4 divide-x divide-rose-600">
             {STATS.map((stat) => (
@@ -250,92 +304,13 @@ function LandingPage() {
           </div>
         </section>
 
+        
         <section className="mx-auto max-w-7xl px-4 pt-16 pb-12">
           <div className="flex items-end justify-between mb-8">
-=======
-    <div className="min-h-screen bg-[#f0f2f5] flex flex-col">
-      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-100">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-md shadow-blue-200">
-              BMV
-            </div>
-            <span className="font-bold text-slate-800 hidden sm:inline">BookMyVenue</span>
-          </Link>
-
-          <nav className="flex items-center gap-3 sm:gap-5 text-sm">
-            <Link to="/venues" className="text-slate-600 hover:text-blue-600">
-              Browse venues
-            </Link>
-            {isAuthenticated ? (
-              <>
-                {isOwner && (
-                  <Link
-                    to="/owner/dashboard"
-                    className="text-slate-600 hover:text-blue-600 hidden sm:inline"
-                  >
-                    Owner dashboard
-                  </Link>
-                )}
-                {!isOwner && user?.role === "user" && (
-                  <Link to="/dashboard" className="text-slate-600 hover:text-blue-600">
-                    Go to dashboard
-                  </Link>
-                )}
-                {isAdmin && (
-                  <Link to="/admin" className="text-slate-600 hover:text-blue-600">
-                    Admin
-                  </Link>
-                )}
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="text-slate-600 hover:text-blue-600">
-                  Sign in
-                </Link>
-                <Link
-                  to="/register"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
-                >
-                  Register
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
-      <main className="flex-1">
-        <section className="mx-auto max-w-6xl px-4 py-12 md:py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
->>>>>>> 7397f30aa734e466506d74299979af83f7cd2b3a
             <div>
-              <p className="text-xs font-medium text-blue-600 uppercase tracking-wider mb-3">
-                Venue booking made simple
-              </p>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-800 leading-tight">
-                Find and book the perfect venue for every occasion
-              </h1>
-              <p className="text-slate-500 mt-4 text-base md:text-lg max-w-lg leading-relaxed">
-                Weddings, corporate events, parties, and celebrations — discover approved
-                venues, book your date, and manage everything in one place.
-              </p>
-              <div className="flex flex-wrap gap-3 mt-8">
-                <Link
-                  to="/venues"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-sm font-medium shadow-lg shadow-blue-200 transition-colors"
-                >
-                  Browse venues
-                </Link>
-                <Link
-                  to="/register-venue-owner"
-                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-6 py-3 rounded-xl text-sm font-medium transition-colors"
-                >
-                  List your venue
-                </Link>
-              </div>
+              <h2 className="text-2xl font-bold text-slate-800">Featured Venues</h2>
+              <p className="text-sm text-slate-400 mt-1">Handpicked spaces for your special day</p>
             </div>
-<<<<<<< HEAD
             <Link
               to="/venues"
               className="flex items-center gap-1.5 text-sm font-medium text-rose-600 hover:text-rose-700 transition-colors"
@@ -370,6 +345,7 @@ function LandingPage() {
           )}
         </section>
 
+        
         <section className="bg-white py-16">
           <div className="mx-auto max-w-7xl px-4">
             <div className="text-center mb-10">
@@ -377,7 +353,7 @@ function LandingPage() {
               <p className="text-sm text-slate-400 mt-2">Four simple steps to your perfect event</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {HOW_IT_WORKS.map((item, idx) => (
+              {HOW_IT_WORKS.map((item) => (
                 <div key={item.title} className="text-center group">
                   <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4 group-hover:bg-rose-600 group-hover:text-white transition-colors duration-300">
                     {item.icon}
@@ -386,19 +362,11 @@ function LandingPage() {
                   <p className="text-sm text-slate-400 mt-2 leading-relaxed max-w-[180px] mx-auto">{item.text}</p>
                 </div>
               ))}
-=======
-            <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm bg-white p-2">
-              <img
-                src={heroImage}
-                alt="Event venue"
-                className="w-full h-64 md:h-80 object-cover rounded-xl"
-              />
->>>>>>> 7397f30aa734e466506d74299979af83f7cd2b3a
             </div>
           </div>
         </section>
 
-<<<<<<< HEAD
+        
         <section className="mx-auto max-w-7xl px-4 py-16">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold text-slate-800">Why Choose BookMyVenue?</h2>
@@ -408,23 +376,21 @@ function LandingPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {WHY_FEATURES.map((feat) => (
-=======
-        <section className="mx-auto max-w-6xl px-4 pb-12">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {STATS.map((stat) => (
->>>>>>> 7397f30aa734e466506d74299979af83f7cd2b3a
               <div
-                key={stat.label}
-                className="bg-white rounded-2xl border border-slate-100 p-5 text-center"
+                key={feat.title}
+                className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md hover:border-rose-100 transition-all"
               >
-                <p className="text-2xl font-bold text-blue-600">{stat.value}</p>
-                <p className="text-sm text-slate-400 mt-1">{stat.label}</p>
+                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg font-bold mb-4">
+                  {feat.icon}
+                </div>
+                <h3 className="font-semibold text-slate-800 text-sm">{feat.title}</h3>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">{feat.text}</p>
               </div>
             ))}
           </div>
         </section>
 
-<<<<<<< HEAD
+        
         <section className="bg-white py-16">
           <div className="mx-auto max-w-7xl px-4">
             <div className="text-center mb-10">
@@ -433,30 +399,44 @@ function LandingPage() {
                 {[1, 2, 3, 4, 5].map((i) => (
                   <StarIcon key={i} className="w-4 h-4 text-amber-400" />
                 ))}
-=======
-        <section className="mx-auto max-w-6xl px-4 pb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-800">How it works</h2>
-            <p className="text-sm text-slate-400 mt-2">Three steps from search to celebration</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {STEPS.map((item) => (
-              <div
-                key={item.step}
-                className="bg-white rounded-2xl border border-slate-100 p-6"
-              >
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold mb-4">
-                  {item.step}
-                </div>
-                <h3 className="font-semibold text-slate-800">{item.title}</h3>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">{item.text}</p>
->>>>>>> 7397f30aa734e466506d74299979af83f7cd2b3a
               </div>
-            ))}
+            </div>
+
+            {reviewsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-slate-50 rounded-2xl p-6 animate-pulse space-y-3">
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((__, j) => <div key={j} className="w-4 h-4 bg-slate-200 rounded" />)}
+                    </div>
+                    <div className="h-3 bg-slate-200 rounded w-full" />
+                    <div className="h-3 bg-slate-200 rounded w-4/5" />
+                    <div className="h-3 bg-slate-200 rounded w-3/5" />
+                    <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                      <div className="w-9 h-9 bg-slate-200 rounded-full" />
+                      <div className="space-y-1.5">
+                        <div className="h-3 bg-slate-200 rounded w-24" />
+                        <div className="h-2.5 bg-slate-200 rounded w-16" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : reviews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {reviews.slice(0, 3).map((review) => (
+                  <ReviewCard key={review.id} review={review} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-slate-400 text-sm py-8">
+                No reviews yet. Be the first to book and share your experience!
+              </p>
+            )}
           </div>
         </section>
 
-<<<<<<< HEAD
+        
         <section className="mx-auto max-w-7xl px-4 py-16">
           <div className="relative bg-gradient-to-br from-slate-900 to-rose-950 rounded-3xl overflow-hidden">
             <div className="absolute inset-0 opacity-20">
@@ -468,126 +448,31 @@ function LandingPage() {
               </h2>
               <p className="text-rose-200 mt-3 text-sm leading-relaxed">
                 List it with BookMyVenue and reach thousands of customers every day. Join our community of premium venue partners.
-=======
-        <section className="mx-auto max-w-6xl px-4 pb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-800">Get started</h2>
-            <p className="text-sm text-slate-400 mt-2">Choose how you want to use BookMyVenue</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 hover:shadow-md hover:border-blue-100 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-slate-800">For customers</h3>
-              <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                Book venues for your events, manage orders, and keep your profile up to date.
->>>>>>> 7397f30aa734e466506d74299979af83f7cd2b3a
               </p>
-              <ul className="mt-4 space-y-2">
-                {CUSTOMER_FEATURES.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                    <span className="text-blue-600 mt-0.5">✓</span>
-                    {f}
+              <ul className="mt-6 space-y-3">
+                {["Grow your business revenue", "Get more verified bookings", "Easy management dashboard"].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-white">
+                    <div className="w-5 h-5 rounded-full bg-rose-500/30 border border-rose-400/40 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    {item}
                   </li>
                 ))}
               </ul>
-              <div className="flex flex-wrap gap-2 mt-6">
-                <Link
-                  to="/login"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/register"
-                  className="border border-slate-200 hover:border-blue-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium"
-                >
-                  Create account
-                </Link>
-                <Link to="/venues" className="text-blue-600 hover:underline text-sm py-2">
-                  Browse without account →
-                </Link>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 hover:shadow-md hover:border-blue-100 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-slate-800">For venue owners</h3>
-              <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                List your space, handle booking requests, and grow your business on our platform.
-              </p>
-              <ul className="mt-4 space-y-2">
-                {OWNER_FEATURES.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                    <span className="text-blue-600 mt-0.5">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex flex-wrap gap-2 mt-6">
-                <Link
-                  to="/register-venue-owner"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium"
-                >
-                  Register as host
-                </Link>
-                <Link
-                  to="/login"
-                  className="border border-slate-200 hover:border-blue-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium"
-                >
-                  Host sign in
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-6xl px-4 pb-16">
-          <div className="bg-blue-600 rounded-2xl p-8 md:p-10 text-center text-white shadow-lg shadow-blue-200">
-            <h2 className="text-2xl font-bold">Ready to find your venue?</h2>
-            <p className="text-blue-100 mt-2 text-sm max-w-md mx-auto">
-              Explore hundreds of approved venues or join as a host and start receiving bookings today.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3 mt-6">
-              <Link
-                to="/venues"
-                className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-2.5 rounded-xl text-sm font-medium"
+              <button
+                onClick={handleListVenue}
+                className="mt-8 inline-flex items-center gap-2 bg-white text-rose-700 hover:bg-rose-50 px-6 py-3 rounded-xl text-sm font-semibold transition-colors shadow-lg"
               >
-                Browse venues
-              </Link>
-              <Link
-                to="/register-venue-owner"
-                className="border border-white/40 hover:bg-white/10 text-white px-6 py-2.5 rounded-xl text-sm font-medium"
-              >
-                Become a host
-              </Link>
+                List Your Venue Now <ArrowRightIcon />
+              </button>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
-              BMV
-            </div>
-            <span className="font-semibold text-slate-700">BookMyVenue</span>
-          </div>
-          <nav className="flex flex-wrap items-center justify-center gap-5">
-            <Link to="/venues" className="hover:text-blue-600">Browse venues</Link>
-            <Link to="/register-venue-owner" className="hover:text-blue-600">List your venue</Link>
-          </nav>
-          <span className="text-slate-400">© {new Date().getFullYear()} BookMyVenue</span>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

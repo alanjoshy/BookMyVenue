@@ -23,8 +23,8 @@ import OwnerEnquiriesPage from "./pages/OwnerEnquiriesPage";
 import OwnerMessagesPage from "./pages/OwnerMessagesPage";
 import OwnerSettingsPage from "./pages/OwnerSettingsPage";
 
-import VenueListPage from "./modules/venues/pages/VenueListPage";
-import VenueDetailPage from "./modules/venues/pages/VenueDetailPage";
+import VenuesPage from "./pages/VenuesPage";
+import VenueDetailPage from "./pages/VenuedetailPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import PendingVenuesPage from "./pages/admin/PendingVenuesPage";
@@ -61,7 +61,7 @@ function App() {
           <Route path="/register-venue-owner" element={<VenueOwnerRegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPlaceholder />} />
 
-          <Route path="/venues" element={<VenueListPage />} />
+          <Route path="/venues" element={<VenuesPage />} />
           <Route path="/venues/:id" element={<VenueDetailPage />} />
 
           <Route path="/admin/login" element={<AdminLoginPage />} />
