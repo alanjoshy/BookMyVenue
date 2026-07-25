@@ -52,7 +52,11 @@ function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate("/", { replace: true });
+      if (user.is_venue_owner) {
+        navigate("/owner/dashboard", { replace: true });
+      } else {
+        navigate("/venues", { replace: true });
+      }
     }
   }, [isAuthenticated, user, navigate]);
 
