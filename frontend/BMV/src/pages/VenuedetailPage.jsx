@@ -72,14 +72,21 @@ function AmenityIcon({ name }) {
 }
 
 
+function normalizeTime(value) {
+  if (!value) return value;
+  return value.length === 5 ? `${value}:00` : value;
+}
+
 function AvailabilityChecker({ venueId }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state) => state.auth);
   const { loading: bookingLoading, error: bookingError } = useSelector((state) => state.bookings);
 
-  const [date, setDate] = useState("");
-  const [timeSlot, setTimeSlot] = useState("");
+  const [checkInDate, setCheckInDate] = useState("");
+  const [checkInTime, setCheckInTime] = useState("");
+  const [checkOutDate, setCheckOutDate] = useState("");
+  const [checkOutTime, setCheckOutTime] = useState("");
   const [result, setResult] = useState(null); // true | false | null
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState(null);
@@ -89,15 +96,32 @@ function AvailabilityChecker({ venueId }) {
   const [notes, setNotes] = useState("");
 
   const todayStr = new Date().toISOString().split("T")[0];
+  const formReady = checkInDate && checkInTime && checkOutDate && checkOutTime;
+  const clearAvailability = () => setResult(null);
 
   const handleCheck = async () => {
-    if (!date || !timeSlot) return;
+    if (!formReady) return;
     setChecking(true);
     setResult(null);
     setCheckError(null);
     try {
-      const data = await venueService.checkAvailability(venueId, date, timeSlot);
+      if (checkOutDate < checkInDate) {
+        setCheckError("Check-out date must be on or after check-in date.");
+        setChecking(false);
+        return;
+      }
+      const check_in_time = normalizeTime(checkInTime);
+      const check_out_time = normalizeTime(checkOutTime);
+      const data = await venueService.checkAvailabilityRange(venueId, {
+        check_in_date: checkInDate,
+        check_in_time,
+        check_out_date: checkOutDate,
+        check_out_time,
+      });
       setResult(data.available);
+      if (!data.available && data.reason) {
+        setCheckError(data.reason);
+      }
     } catch {
       setCheckError("Could not check availability. Try again.");
     } finally {
@@ -107,20 +131,23 @@ function AvailabilityChecker({ venueId }) {
 
   const handleBook = async () => {
     if (!isAuthenticated) {
-      // Remember where to come back to after login
       navigate(`/login?next=/venues/${venueId}`);
       return;
     }
 
-    if (!date || !timeSlot) return;
+    if (!formReady) return;
 
-    const idempotencyKey = `${venueId}-${date}-${timeSlot}-${Date.now()}`;
+    const check_in_time = normalizeTime(checkInTime);
+    const check_out_time = normalizeTime(checkOutTime);
+    const idempotencyKey = `${venueId}-${checkInDate}-${check_in_time}-${checkOutDate}-${check_out_time}-${Date.now()}`;
 
     const resultAction = await dispatch(
       createBookingAsync({
         venue_id: venueId,
-        booking_date: date,
-        time_slot: timeSlot,
+        check_in_date: checkInDate,
+        check_in_time,
+        check_out_date: checkOutDate,
+        check_out_time,
         event_type: eventType || undefined,
         guest_count: guestCount ? Number(guestCount) : undefined,
         notes: notes || undefined,
@@ -129,7 +156,7 @@ function AvailabilityChecker({ venueId }) {
     );
 
     if (createBookingAsync.fulfilled.match(resultAction)) {
-      navigate(`/booking-confirmed/${resultAction.payload.id}`);
+      navigate(`/checkout/${resultAction.payload.id}`);
     }
   };
 
@@ -137,14 +164,55 @@ function AvailabilityChecker({ venueId }) {
     <>
       <div className="mb-3">
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Date
+          Check-in date
         </label>
         <div className="relative">
           <input
             type="date"
             min={todayStr}
-            value={date}
-            onChange={(e) => { setDate(e.target.value); setResult(null); }}
+            value={checkInDate}
+            onChange={(e) => {
+              const value = e.target.value;
+              setCheckInDate(value);
+              if (!checkOutDate || value > checkOutDate) setCheckOutDate(value);
+              clearAvailability();
+            }}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
+          />
+          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          Check-in time
+        </label>
+        <div className="relative">
+          <select
+            value={checkInTime}
+            onChange={(e) => { setCheckInTime(e.target.value); clearAvailability(); }}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 appearance-none bg-white transition-all"
+          >
+            <option value="">Select a time</option>
+            {["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
+              "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"].map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          Check-out date
+        </label>
+        <div className="relative">
+          <input
+            type="date"
+            min={checkInDate || todayStr}
+            value={checkOutDate}
+            onChange={(e) => { setCheckOutDate(e.target.value); clearAvailability(); }}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
           />
           <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -153,17 +221,17 @@ function AvailabilityChecker({ venueId }) {
 
       <div className="mb-4">
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Time Slot
+          Check-out time
         </label>
         <div className="relative">
           <select
-            value={timeSlot}
-            onChange={(e) => { setTimeSlot(e.target.value); setResult(null); }}
+            value={checkOutTime}
+            onChange={(e) => { setCheckOutTime(e.target.value); clearAvailability(); }}
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-rose-400 appearance-none bg-white transition-all"
           >
             <option value="">Select a time</option>
             {["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
-              "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"].map((t) => (
+              "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"].map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -177,7 +245,7 @@ function AvailabilityChecker({ venueId }) {
             ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
             : "bg-red-50 text-red-700 border border-red-100"
         }`}>
-          {result ? "✓ Available on this date & time" : "✗ Not available — try another slot"}
+          {result ? "✓ Available for this stay" : "✗ Not available — try another range"}
         </div>
       )}
       {checkError && (
@@ -236,7 +304,7 @@ function AvailabilityChecker({ venueId }) {
 
       <button
         onClick={handleCheck}
-        disabled={!date || !timeSlot || checking}
+        disabled={!formReady || checking}
         className="w-full bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl text-sm font-semibold transition-colors mb-2.5 flex items-center justify-center gap-2"
       >
         {checking ? "Checking..." : <>Check Availability <ArrowRightIcon className="w-3.5 h-3.5" /></>}

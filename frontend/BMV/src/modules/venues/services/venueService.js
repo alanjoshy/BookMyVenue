@@ -30,3 +30,5 @@ export const venueService = {
     return data;
   },
 };
+
+export const checkAvailabilityRange = venueService.checkAvailabilityRange;

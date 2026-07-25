@@ -7,9 +7,12 @@ function unwrap(err) {
 }
 
 export const paymentService = {
-  async initiate(booking_id) {
+  async initiate(booking_id, payment_option = "full") {
     try {
-      const res = await client.post("/payments/initiate", { booking_id });
+      const res = await client.post("/payments/initiate", {
+        booking_id,
+        payment_option,
+      });
       return res.data;
     } catch (err) {
       unwrap(err);
