@@ -52,13 +52,9 @@ function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.is_venue_owner) {
-        navigate("/owner/dashboard", { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
+      navigate("/", { replace: true });
     }
-  }, [isAuthenticated,user, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
     return () => dispatch(resetAuthStatus());

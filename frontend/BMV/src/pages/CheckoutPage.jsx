@@ -32,7 +32,12 @@ function CheckoutPage() {
   const [paying, setPaying] = useState(false);
 
   useEffect(() => {
-    dispatch(initiatePaymentAsync(Number(bookingId)));
+    dispatch(
+      initiatePaymentAsync({
+        bookingId: Number(bookingId),
+        paymentOption: "full",
+      }),
+    );
     return () => {
       dispatch(resetPayment());
     };
@@ -157,7 +162,14 @@ function CheckoutPage() {
               </p>
               <button
                 type="button"
-                onClick={() => dispatch(initiatePaymentAsync(Number(bookingId)))}
+                onClick={() =>
+                  dispatch(
+                    initiatePaymentAsync({
+                      bookingId: Number(bookingId),
+                      paymentOption: "full",
+                    }),
+                  )
+                }
                 disabled={loading}
                 className="w-full rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >

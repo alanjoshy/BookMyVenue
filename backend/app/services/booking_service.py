@@ -389,8 +389,12 @@ def _serialize_detail(db: Session, booking: Booking, venue: Venue | None, paymen
         "venue_location": venue.location if venue else None,
         "google_maps_url": venue.google_maps_url if venue else None,
         "google_review_url": venue.google_review_url if venue else None,
-        "advance_percent": venue.advance_percent if venue else 30,
-        "allow_pay_at_venue": bool(venue.allow_pay_at_venue) if venue else True,
+        "advance_percent": (
+            venue.advance_percent if venue and venue.advance_percent is not None else 30
+        ),
+        "allow_pay_at_venue": (
+            bool(venue.allow_pay_at_venue) if venue and venue.allow_pay_at_venue is not None else True
+        ),
         "payment_status": payment.status if payment else None,
         "can_review": can_review,
         "has_review": has_review,
