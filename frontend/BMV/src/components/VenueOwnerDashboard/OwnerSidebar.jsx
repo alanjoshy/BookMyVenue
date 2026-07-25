@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useOwnerLayout } from "./OwnerLayout";
 
-const CUSTOMER_DASHBOARD_ROUTE = "/dashboard";
+const CUSTOMER_DASHBOARD_ROUTE = "/";
 
 function SidebarNav({ onNavigate }) {
   const navigate = useNavigate();

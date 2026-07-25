@@ -12,6 +12,7 @@ import { createBookingAsync } from "../modules/bookings/bookingSlice";
 import { venueService } from "../modules/venues/services/venueService";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import { useCustomerLayout } from "../components/CustomerLayout";
 
 
 function StarIcon({ filled = true, className = "w-4 h-4" }) {
@@ -682,6 +683,8 @@ function SimilarVenueCard({ venue }) {
 function VenueDetailPage() {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const inCustomerShell = isAuthenticated || Boolean(useCustomerLayout());
   const {
     selected: venue,
     isLoadingSelected,
@@ -711,7 +714,7 @@ function VenueDetailPage() {
 
   if (isLoadingSelected) {
     return (
-      <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
+      <div className={`${inCustomerShell ? "py-16" : "min-h-screen bg-[#f5f5f7]"} flex items-center justify-center`}>
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm text-slate-500">Loading venue...</p>
@@ -722,7 +725,7 @@ function VenueDetailPage() {
 
   if (selectedError || !venue) {
     return (
-      <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
+      <div className={`${inCustomerShell ? "py-16" : "min-h-screen bg-[#f5f5f7]"} flex items-center justify-center`}>
         <div className="text-center">
           <p className="text-slate-700 font-semibold">Venue not found</p>
           <Link to="/venues" className="text-sm text-rose-600 hover:underline mt-2 inline-block">
@@ -733,14 +736,15 @@ function VenueDetailPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col">
-      <Navbar />
-
-      <div className="flex-1 mx-auto max-w-7xl w-full px-4 py-6">
+  const content = (
+    <>
         <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
-          <Link to="/" className="hover:text-rose-600">Home</Link>
-          <span>/</span>
+          {!inCustomerShell && (
+            <>
+              <Link to="/" className="hover:text-rose-600">Home</Link>
+              <span>/</span>
+            </>
+          )}
           <Link to="/venues" className="hover:text-rose-600">Venues</Link>
           <span>/</span>
           <span className="text-slate-600">{venue.name}</span>
@@ -937,8 +941,17 @@ function VenueDetailPage() {
             </div>
           </section>
         )}
-      </div>
+    </>
+  );
 
+  if (inCustomerShell) {
+    return <div className="pb-4">{content}</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f5f5f7] flex flex-col">
+      <Navbar />
+      <div className="flex-1 mx-auto max-w-7xl w-full px-4 py-6">{content}</div>
       <Footer />
     </div>
   );

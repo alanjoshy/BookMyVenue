@@ -32,6 +32,10 @@ function ReviewForm({ venueId, bookingId, googleMapsUrl, googleReviewUrl, onSucc
 
   const reviewRedirectUrl = googleReviewUrl || googleMapsUrl;
 
+  const finish = () => {
+    onSuccess?.({ rating: submittedRating || rating });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (rating < 1) {
@@ -49,10 +53,12 @@ function ReviewForm({ venueId, bookingId, googleMapsUrl, googleReviewUrl, onSucc
         comment: comment.trim() || null,
       });
       setSubmittedRating(rating);
+      // Keep this form mounted until the user finishes the post-submit step.
+      // Calling onSuccess immediately refreshes the booking, sets can_review=false,
+      // and unmounts the Google Maps prompt.
       if (rating >= 4 && reviewRedirectUrl) {
         setShowGooglePrompt(true);
       }
-      onSuccess?.({ rating });
     } catch (err) {
       setError(err.message || "Could not submit review.");
     } finally {
@@ -69,7 +75,7 @@ function ReviewForm({ venueId, bookingId, googleMapsUrl, googleReviewUrl, onSucc
         <p className="text-sm text-emerald-700">
           Would you also like to share your experience on Google Maps?
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <a
             href={reviewRedirectUrl}
             target="_blank"
@@ -80,22 +86,29 @@ function ReviewForm({ venueId, bookingId, googleMapsUrl, googleReviewUrl, onSucc
           </a>
           <button
             type="button"
-            onClick={() => setShowGooglePrompt(false)}
+            onClick={finish}
             className="rounded-xl border border-emerald-200 px-4 py-2 text-sm text-emerald-700 hover:bg-white"
           >
-            Done
+            Continue
           </button>
         </div>
       </div>
     );
   }
 
-  if (submittedRating > 0 && !(submittedRating >= 4 && reviewRedirectUrl)) {
+  if (submittedRating > 0) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
         <p className="text-sm font-medium text-emerald-800">
           Thank you! Your review has been submitted.
         </p>
+        <button
+          type="button"
+          onClick={finish}
+          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        >
+          Continue
+        </button>
       </div>
     );
   }

@@ -141,14 +141,11 @@ function CheckoutPage() {
   const amountInr = current ? Number(current.amount).toLocaleString("en-IN") : null;
 
   return (
-    <div className="max-w-md space-y-4">
-      <Link to={`/bookings/${bookingId}`} className="text-sm text-rose-800 hover:underline">
+    <div className="max-w-lg space-y-4">
+      <Link to={`/bookings/${bookingId}`} className="text-sm font-medium text-rose-800 hover:underline">
         ← Back to booking
       </Link>
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Checkout</h1>
-        <p className="text-sm text-slate-500 mt-1">Pay for booking #{bookingId}</p>
-      </div>
+      <p className="text-sm text-slate-500">Pay for booking #{bookingId}</p>
 
       {(bookingLoading && !bookingReady) && (
         <div className="flex justify-center py-8">

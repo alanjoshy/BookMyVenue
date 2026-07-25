@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { CalendarCheck, ArrowRight } from "lucide-react";
 import { fetchCurrentUserAsync, updateProfileAsync } from "../modules/auth/authSlice";
 
 function ProfilePage() {
@@ -117,20 +118,29 @@ function ProfilePage() {
     "w-full border border-slate-100 rounded-xl px-4 py-2.5 text-sm bg-slate-50 text-slate-400";
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-800">My Profile</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Manage your account details and bookings</p>
+        <h1 className="text-2xl font-bold text-slate-900">Profile</h1>
+        <p className="text-sm text-slate-400 mt-1">Manage your account details</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 p-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 p-6">
         {!user && isLoading ? (
-          <div className="h-32 bg-slate-50 rounded-xl animate-pulse" />
+          <div className="h-40 bg-slate-50 rounded-xl animate-pulse" />
         ) : !editing ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-start justify-between gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center text-xl font-bold">
-                {(user?.name || user?.email || "?").charAt(0).toUpperCase()}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center text-xl font-bold shrink-0">
+                  {(user?.name || user?.email || "?").charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold text-slate-800 truncate">
+                    {user?.name || "Your account"}
+                  </p>
+                  <p className="text-sm text-slate-400 truncate">{user?.email}</p>
+                </div>
               </div>
               <button
                 type="button"
@@ -139,19 +149,20 @@ function ProfilePage() {
                   setLocalError("");
                   setEditing(true);
                 }}
-                className="text-sm text-rose-800 hover:underline"
+                className="shrink-0 text-sm font-medium text-rose-800 hover:underline"
               >
                 Edit profile
               </button>
             </div>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 text-sm">
               <div>
                 <dt className="text-slate-400">Name</dt>
                 <dd className="font-medium text-slate-800 mt-0.5">{user?.name || "—"}</dd>
               </div>
               <div>
                 <dt className="text-slate-400">Email</dt>
-                <dd className="font-medium text-slate-800 mt-0.5">{user?.email}</dd>
+                <dd className="font-medium text-slate-800 mt-0.5 break-all">{user?.email}</dd>
               </div>
               <div>
                 <dt className="text-slate-400">Phone</dt>
@@ -268,11 +279,11 @@ function ProfilePage() {
               </>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-1">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-rose-900 hover:bg-rose-950 text-white px-5 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+                className="bg-rose-900 hover:bg-rose-950 text-white px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
               >
                 {isLoading ? "Saving..." : "Save changes"}
               </button>
@@ -286,6 +297,7 @@ function ProfilePage() {
             </div>
           </form>
         )}
+
         {(localError || error) && (
           <p className="text-sm text-rose-600 bg-rose-50 px-3 py-2 rounded-xl mt-4">
             {localError || error}
@@ -296,15 +308,36 @@ function ProfilePage() {
         )}
       </div>
 
-      <Link
-        to="/order-history"
-        className="block bg-white rounded-2xl border border-slate-100 p-5 hover:border-rose-200 hover:shadow-sm transition-all max-w-3xl"
-      >
-        <h2 className="font-semibold text-slate-800">Order history</h2>
-        <p className="text-sm text-slate-400 mt-1">
-          View bookings, payments, cancellations, and leave reviews
-        </p>
-      </Link>
+      <div className="space-y-4">
+        <Link
+          to="/order-history"
+          className="block bg-white rounded-2xl border border-slate-100 p-5 hover:border-rose-200 hover:shadow-sm transition-all"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <span className="inline-flex p-2 rounded-xl bg-rose-50 text-rose-700">
+              <CalendarCheck size={16} />
+            </span>
+            <h2 className="font-semibold text-slate-800">My bookings</h2>
+          </div>
+          <p className="text-sm text-slate-400">
+            View bookings, payments, cancellations, and leave reviews
+          </p>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-800 mt-3">
+            Open bookings
+            <ArrowRight size={12} />
+          </span>
+        </Link>
+
+        <Link
+          to="/venues"
+          className="block bg-white rounded-2xl border border-slate-100 p-5 hover:border-rose-200 hover:shadow-sm transition-all"
+        >
+          <p className="text-xs text-slate-400 uppercase tracking-wide">Explore</p>
+          <p className="font-semibold text-slate-800 mt-1">Browse venues</p>
+          <p className="text-sm text-slate-400 mt-1">Find your next event space</p>
+        </Link>
+      </div>
+      </div>
     </div>
   );
 }

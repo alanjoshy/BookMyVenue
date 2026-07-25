@@ -108,17 +108,21 @@ function BookingDetailPage() {
   const canManualCheckout = current.can_manual_checkout === true;
 
   return (
-    <div className="max-w-xl space-y-4">
-      <Link to="/order-history" className="text-sm text-rose-800 hover:underline">
-        ← My bookings
+    <div className="space-y-4">
+      <Link
+        to="/order-history"
+        className="inline-flex text-sm font-medium text-rose-800 hover:underline"
+      >
+        ← Back to My Bookings
       </Link>
 
-      <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-slate-800 truncate">
               {current.venue_name || `Venue #${current.venue_id}`}
-            </h1>
+            </h2>
             {current.venue_location && (
               <p className="text-sm text-slate-400">{current.venue_location}</p>
             )}
@@ -279,6 +283,7 @@ function BookingDetailPage() {
         )}
       </div>
 
+      <div className="space-y-4">
       {current.show_check_in_qr && current.check_in_token && (
         <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-3">
           <h2 className="text-lg font-semibold text-slate-800">Venue check-in</h2>
@@ -349,6 +354,8 @@ function BookingDetailPage() {
             : "Your venue review was submitted. Thank you for your feedback!"}
         </div>
       )}
+      </div>
+      </div>
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 p-4 z-50">

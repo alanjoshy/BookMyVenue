@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import { MapPin, ArrowRight } from "lucide-react";
 import { fetchMyBookingsAsync } from "../modules/bookings/bookingSlice";
 import StatusBadge from "../components/shared/StatusBadge";
 import EmptyState from "../components/shared/EmptyState";
@@ -25,7 +26,6 @@ const PAGE_SIZE = 10;
 function OrderHistoryPage() {
   const dispatch = useDispatch();
   const { list, pagination, loading, error } = useSelector((state) => state.bookings);
-  const { user } = useSelector((state) => state.auth);
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(1);
 
@@ -45,39 +45,41 @@ function OrderHistoryPage() {
   const canNext = currentPage < totalPages;
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">My Bookings</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {user?.name ? `${user.name}'s orders` : "Your past and upcoming orders"}
-          </p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">My Bookings</h1>
+        <p className="text-sm text-slate-400 mt-1">
+          Track upcoming, pending, and past orders
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                filter === f.key
+                  ? "bg-rose-900 text-white"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
         {pagination && (
           <span className="text-sm text-slate-400 shrink-0">{totalItems} orders</span>
         )}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => setFilter(f.key)}
-            className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              filter === f.key
-                ? "bg-rose-900 text-white"
-                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
       {loading && (
-        <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-rose-900 border-t-transparent rounded-full animate-spin" />
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-20 bg-slate-50 rounded-xl animate-pulse" />
+          ))}
         </div>
       )}
 
@@ -96,64 +98,68 @@ function OrderHistoryPage() {
         </div>
       )}
 
-      <div className="space-y-3">
-        {bookings.map((b) => {
-          const displayStatus = resolveCustomerBookingStatus(b);
-          const showPay = canCustomerPay(b);
-          return (
-            <Link
-              key={b.id}
-              to={`/bookings/${b.id}`}
-              className="block bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md hover:border-rose-200 transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-800 truncate">
-                    {b.venue_name || `Venue #${b.venue_id}`}
-                  </p>
+      {!loading && bookings.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-100">
+          {bookings.map((b) => {
+            const displayStatus = resolveCustomerBookingStatus(b);
+            const showPay = canCustomerPay(b);
+            return (
+              <Link
+                key={b.id}
+                to={`/bookings/${b.id}`}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 hover:bg-slate-50/80 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="font-semibold text-slate-800 truncate">
+                      {b.venue_name || `Venue #${b.venue_id}`}
+                    </p>
+                    <StatusBadge status={displayStatus} />
+                  </div>
                   {b.venue_location && (
-                    <p className="text-sm text-slate-400 truncate">{b.venue_location}</p>
+                    <p className="text-sm text-slate-400 flex items-center gap-1 truncate">
+                      <MapPin size={13} className="shrink-0" />
+                      {b.venue_location}
+                    </p>
                   )}
                   <p className="text-sm text-slate-600 mt-2">{formatBookingPeriod(b)}</p>
                   <p className="text-xs text-slate-400 mt-1">
                     Order #{b.id} · {new Date(b.created_at).toLocaleDateString("en-IN")}
                   </p>
                 </div>
-                <div className="text-right shrink-0 space-y-2">
-                  <StatusBadge status={displayStatus} />
-                  <p className="text-base font-bold text-slate-800">
+
+                <div className="sm:text-right shrink-0 space-y-1.5">
+                  <p className="text-lg font-bold text-slate-800">
                     ₹{Number(b.amount).toLocaleString("en-IN")}
                   </p>
                   {b.payment_status && (
                     <p className="text-xs text-slate-400 capitalize">Payment: {b.payment_status}</p>
                   )}
                   {displayStatus === "awaiting_approval" && (
-                    <span className="inline-block text-xs text-blue-700 font-medium">
-                      Waiting for owner →
-                    </span>
+                    <p className="text-xs text-blue-700 font-medium">Waiting for owner</p>
                   )}
                   {showPay && (
-                    <span className="inline-block text-xs text-rose-800 font-medium">Pay now →</span>
+                    <p className="text-xs text-rose-800 font-medium">Pay now</p>
                   )}
                   {displayStatus === "rejected" && (
-                    <span className="inline-block text-xs text-red-600 font-medium">
-                      Rejected by owner
-                    </span>
+                    <p className="text-xs text-red-600 font-medium">Rejected by owner</p>
                   )}
                   {displayStatus === "checked_in" && (
-                    <span className="inline-block text-xs text-teal-700 font-medium">
-                      Checked in at venue
-                    </span>
+                    <p className="text-xs text-teal-700 font-medium">Checked in at venue</p>
                   )}
                   {b.can_review && (
-                    <span className="inline-block text-xs text-rose-800 font-medium">Write review →</span>
+                    <p className="text-xs text-rose-800 font-medium">Write review</p>
                   )}
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+                    Details
+                    <ArrowRight size={12} />
+                  </span>
                 </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {!loading && totalItems > PAGE_SIZE && (
         <div className="flex items-center justify-between gap-4 bg-white rounded-2xl border border-slate-100 px-4 py-3">

@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchPublicVenuesAsync } from "../modules/venues/venuesSlice";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import { useCustomerLayout } from "../components/CustomerLayout";
 
 
 function StarIcon({ className = "w-4 h-4" }) {
@@ -146,6 +147,8 @@ function VenuesPage() {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const { list: venues, isLoadingList } = useSelector((state) => state.venues);
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const inCustomerShell = isAuthenticated || Boolean(useCustomerLayout());
 
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [location, setLocation] = useState(searchParams.get("location") || "");
@@ -174,7 +177,7 @@ function VenuesPage() {
     if (debouncedSearch) urlParams.search = debouncedSearch;
     if (debouncedLocation) urlParams.location = debouncedLocation;
     setSearchParams(urlParams, { replace: true });
-  }, [debouncedSearch, debouncedLocation, dispatch]);
+  }, [debouncedSearch, debouncedLocation, dispatch, setSearchParams]);
 
   const handleClearFilters = () => {
     setSearch("");
@@ -183,6 +186,111 @@ function VenuesPage() {
 
   const hasFilters = search || location;
 
+  const filtersBar = (
+    <div className={inCustomerShell ? "mb-5" : "bg-white border-b border-slate-100 shadow-sm"}>
+      <div className={inCustomerShell ? "" : "mx-auto max-w-7xl px-4 py-4"}>
+        <div
+          className={`flex flex-col sm:flex-row gap-3 ${
+            inCustomerShell ? "bg-white rounded-2xl border border-slate-100 p-4" : ""
+          }`}
+        >
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search venues by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
+            />
+          </div>
+          <div className="relative sm:w-64">
+            <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Filter by location..."
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
+            />
+          </div>
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="text-sm text-slate-500 hover:text-rose-600 px-3 py-2.5 border border-slate-200 rounded-xl transition-colors whitespace-nowrap"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const venueGrid = (
+    <>
+      {isLoadingList ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {[...Array(8)].map((_, i) => (
+            <VenueCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : venues.length === 0 ? (
+        <div className="text-center py-24 bg-white rounded-2xl border border-slate-100">
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <SearchIcon className="w-7 h-7 text-slate-400" />
+          </div>
+          <h3 className="text-slate-800 font-semibold">No venues found</h3>
+          <p className="text-slate-400 text-sm mt-2">
+            {hasFilters
+              ? "Try adjusting your search or location filter."
+              : "No approved venues are available yet."}
+          </p>
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="mt-4 text-sm text-rose-600 hover:underline"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-slate-400 mb-4">
+            {hasFilters
+              ? `Showing ${venues.length} result${venues.length !== 1 ? "s" : ""}${
+                  search ? ` for "${search}"` : ""
+                }${location ? ` in "${location}"` : ""}`
+              : `${venues.length} venue${venues.length !== 1 ? "s" : ""} available`}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {venues.map((venue) => (
+              <VenueCard key={venue.id} venue={venue} />
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+
+  if (inCustomerShell) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Browse Venues</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Find and book your next event space
+          </p>
+        </div>
+        {filtersBar}
+        {venueGrid}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col">
       <Navbar activePage="venues" />
@@ -190,7 +298,9 @@ function VenuesPage() {
       <div className="bg-gradient-to-br from-slate-900 to-rose-950 text-white py-12 px-4">
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center gap-2 text-xs text-rose-300 mb-4">
-            <Link to="/" className="hover:text-white transition-colors">Home</Link>
+            <Link to="/" className="hover:text-white transition-colors">
+              Home
+            </Link>
             <span>/</span>
             <span className="text-white">Venues</span>
           </div>
@@ -203,83 +313,9 @@ function VenuesPage() {
         </div>
       </div>
 
-      <div className="bg-white border-b border-slate-100 shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 py-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search venues by name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
-              />
-            </div>
-            <div className="relative sm:w-64">
-              <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Filter by location..."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all"
-              />
-            </div>
-            {hasFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="text-sm text-slate-500 hover:text-rose-600 px-3 py-2.5 border border-slate-200 rounded-xl transition-colors whitespace-nowrap"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      {filtersBar}
 
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-8">
-        {isLoadingList ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {[...Array(8)].map((_, i) => <VenueCardSkeleton key={i} />)}
-          </div>
-        ) : venues.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <SearchIcon className="w-7 h-7 text-slate-400" />
-            </div>
-            <h3 className="text-slate-800 font-semibold">No venues found</h3>
-            <p className="text-slate-400 text-sm mt-2">
-              {hasFilters
-                ? "Try adjusting your search or location filter."
-                : "No approved venues are available yet."}
-            </p>
-            {hasFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="mt-4 text-sm text-rose-600 hover:underline"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            {hasFilters && (
-              <p className="text-xs text-slate-400 mb-4">
-                Showing {venues.length} result{venues.length !== 1 ? "s" : ""}
-                {search ? ` for "${search}"` : ""}
-                {location ? ` in "${location}"` : ""}
-              </p>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {venues.map((venue) => (
-                <VenueCard key={venue.id} venue={venue} />
-              ))}
-            </div>
-          </>
-        )}
-      </main>
+      <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-8">{venueGrid}</main>
 
       <Footer />
     </div>

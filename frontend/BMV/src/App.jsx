@@ -41,6 +41,7 @@ import RequireVenueOwner from "./components/RequireVenueOwner";
 import RequireAdmin from "./components/RequireAdmin";
 import AdminLayout from "./components/admin/AdminLayout";
 import CustomerLayout from "./components/CustomerLayout";
+import CustomerOrPublicLayout from "./components/CustomerOrPublicLayout";
 
 function ForgotPasswordPlaceholder() {
   return (
@@ -61,10 +62,12 @@ function App() {
           <Route path="/register-venue-owner" element={<VenueOwnerRegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPlaceholder />} />
 
-          <Route path="/venues" element={<VenuesPage />} />
-          <Route path="/venues/:id" element={<VenueDetailPage />} />
-
           <Route path="/admin/login" element={<AdminLoginPage />} />
+
+          <Route element={<CustomerOrPublicLayout />}>
+            <Route path="/venues" element={<VenuesPage />} />
+            <Route path="/venues/:id" element={<VenueDetailPage />} />
+          </Route>
 
           <Route element={<RequireAuth />}>
             <Route element={<CustomerLayout />}>
