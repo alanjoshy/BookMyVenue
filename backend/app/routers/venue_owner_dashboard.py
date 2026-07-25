@@ -124,6 +124,17 @@ def collect_booking_balance(
     return payment_service.collect_balance(db, current_user.id, booking_id)
 
 
+@router.post("/bookings/{booking_id}/checkout", response_model=OwnerBookingOut)
+def manual_checkout_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_venue_owner),
+):
+    """Testing: manually mark checkout so the guest can review early."""
+    booking = dashboard_service.manual_checkout_booking(db, booking_id, current_user.id)
+    return booking
+
+
 @router.get("/availability", response_model=AvailabilityCalendarOut)
 def availability_calendar(
     month: str = Query(..., description="YYYY-MM, e.g. 2024-05"),

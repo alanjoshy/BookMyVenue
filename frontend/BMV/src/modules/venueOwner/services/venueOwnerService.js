@@ -42,6 +42,13 @@ export const venueOwnerService = {
     return res.data;
   },
 
+  async manualCheckoutBooking(id) {
+    const res = await client.post(
+      `/venue-owners/dashboard/bookings/${id}/checkout`,
+    );
+    return res.data;
+  },
+
   async verifyBookingCheckIn(check_in_token) {
     const res = await client.post("/venue-owners/dashboard/bookings/check-in", {
       check_in_token,

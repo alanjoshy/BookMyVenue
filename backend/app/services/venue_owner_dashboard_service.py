@@ -216,6 +216,40 @@ def reject_booking_request(
     return booking
 
 
+def manual_checkout_booking(db: Session, booking_id: int, owner_id: int) -> Booking:
+    """
+    Testing helper for venue owners: complete a paid booking early so the
+    customer can leave a review without waiting for the scheduled check-out.
+    """
+    booking = (
+        db.query(Booking)
+        .options(joinedload(Booking.venue), joinedload(Booking.user))
+        .join(Venue, Booking.venue_id == Venue.id)
+        .filter(Booking.id == booking_id, Venue.owner_id == owner_id)
+        .first()
+    )
+    if not booking:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+
+    if booking.status == "completed":
+        return booking
+
+    if booking.status != "booked" or booking.owner_status != "accepted":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only an accepted, paid booking can be checked out",
+        )
+
+    now = datetime.now(timezone.utc)
+    if not booking.checked_in_at:
+        booking.checked_in_at = now
+    booking.checked_out_at = now
+    booking.status = "completed"
+    db.commit()
+    db.refresh(booking)
+    return booking
+
+
 def get_availability_calendar(db: Session, owner_id: int, month: str, venue_id: int | None = None, ) -> dict:
     venue_ids = _owner_venue_ids(db, owner_id)
     if not venue_ids:

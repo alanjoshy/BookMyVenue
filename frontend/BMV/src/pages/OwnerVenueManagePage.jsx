@@ -13,6 +13,7 @@ import {
   fetchVenueBookingsAsync,
   acceptBookingRequestAsync,
   rejectBookingRequestAsync,
+  manualCheckoutBookingAsync,
   clearActiveVenue,
   clearVenueBookings,
 } from "../modules/venueOwner/venueOwnerSlice";
@@ -34,6 +35,7 @@ const APPROVAL_LABEL = {
 function resolveDisplayStatus(booking) {
   if (booking.owner_status === "rejected") return "rejected";
   if (booking.status === "cancelled") return "cancelled";
+  if (booking.status === "completed") return "completed";
   const endDate = booking.check_out_date ?? booking.booking_date;
   const isPast = new Date(endDate) < new Date(new Date().toDateString());
   if (booking.owner_status === "accepted" && isPast) return "completed";
@@ -73,38 +75,59 @@ function StatusBadge({ booking }) {
   );
 }
 
-function ActionButtons({ booking, actionBookingId, onAccept, onReject }) {
+function ActionButtons({ booking, actionBookingId, onAccept, onReject, onManualCheckout }) {
   const displayStatus = resolveDisplayStatus(booking);
   const isActing = actionBookingId === booking.id;
-  if (displayStatus !== "pending") return null;
+  const canCheckout =
+    booking.status === "booked" && booking.owner_status === "accepted";
+
+  if (displayStatus === "pending") {
+    return (
+      <div className="flex items-center gap-1.5 mt-2">
+        <button
+          onClick={() => onReject(booking.id)}
+          disabled={isActing}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors disabled:opacity-50"
+        >
+          {isActing
+            ? <span className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+            : <X size={11} />}
+          Reject
+        </button>
+        <button
+          onClick={() => onAccept(booking.id)}
+          disabled={isActing}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-900 hover:bg-rose-950 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+        >
+          {isActing
+            ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+            : <Check size={11} />}
+          Accept
+        </button>
+      </div>
+    );
+  }
+
+  if (!canCheckout) return null;
+
   return (
-    <div className="flex items-center gap-1.5 mt-2">
-      <button
-        onClick={() => onReject(booking.id)}
-        disabled={isActing}
-        className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors disabled:opacity-50"
-      >
-        {isActing
-          ? <span className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin" />
-          : <X size={11} />}
-        Reject
-      </button>
-      <button
-        onClick={() => onAccept(booking.id)}
-        disabled={isActing}
-        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-900 hover:bg-rose-950 text-white text-xs font-semibold transition-colors disabled:opacity-50"
-      >
-        {isActing
-          ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-          : <Check size={11} />}
-        Accept
-      </button>
-    </div>
+    <button
+      type="button"
+      title="Testing: complete booking early so the guest can leave a review"
+      onClick={() => onManualCheckout(booking.id)}
+      disabled={isActing}
+      className="mt-2 flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-[11px] font-semibold transition-colors disabled:opacity-50"
+    >
+      {isActing ? (
+        <span className="w-3 h-3 border border-amber-600 border-t-transparent rounded-full animate-spin" />
+      ) : null}
+      Checkout (testing)
+    </button>
   );
 }
 
 // Desktop table row
-function BookingRow({ booking, actionBookingId, onAccept, onReject }) {
+function BookingRow({ booking, actionBookingId, onAccept, onReject, onManualCheckout }) {
   const periodStr = formatBookingPeriod(booking);
 
   return (
@@ -122,6 +145,11 @@ function BookingRow({ booking, actionBookingId, onAccept, onReject }) {
       </td>
       <td className="py-3 px-4">
         <p className="text-sm text-gray-700">{periodStr}</p>
+        {booking.checked_out_at && (
+          <p className="text-[11px] text-amber-700 mt-0.5">
+            Checked out {new Date(booking.checked_out_at).toLocaleString("en-IN")} (testing)
+          </p>
+        )}
       </td>
       <td className="py-3 px-4">
         {booking.guest_count != null
@@ -149,6 +177,7 @@ function BookingRow({ booking, actionBookingId, onAccept, onReject }) {
             actionBookingId={actionBookingId}
             onAccept={onAccept}
             onReject={onReject}
+            onManualCheckout={onManualCheckout}
           />
         </div>
       </td>
@@ -157,7 +186,7 @@ function BookingRow({ booking, actionBookingId, onAccept, onReject }) {
 }
 
 // Mobile card
-function BookingCard({ booking, actionBookingId, onAccept, onReject }) {
+function BookingCard({ booking, actionBookingId, onAccept, onReject, onManualCheckout }) {
   const periodStr = formatBookingPeriod(booking);
 
   return (
@@ -181,6 +210,11 @@ function BookingCard({ booking, actionBookingId, onAccept, onReject }) {
           <span className="flex items-center gap-1"><Users size={10} /> {booking.guest_count} guests</span>
         )}
       </div>
+      {booking.checked_out_at && (
+        <p className="text-[11px] text-amber-700 mt-1">
+          Checked out {new Date(booking.checked_out_at).toLocaleString("en-IN")} (testing)
+        </p>
+      )}
 
       <div className="flex items-center justify-between mt-2">
         <p className="text-sm font-semibold text-gray-800 flex items-center gap-0.5">
@@ -192,6 +226,7 @@ function BookingCard({ booking, actionBookingId, onAccept, onReject }) {
           actionBookingId={actionBookingId}
           onAccept={onAccept}
           onReject={onReject}
+          onManualCheckout={onManualCheckout}
         />
       </div>
     </div>
@@ -238,6 +273,16 @@ function VenueBookingsSection({ venueId }) {
       setRejectTarget(null);
       load(activeTab, page);
     });
+  };
+  const handleManualCheckout = (id) => {
+    if (
+      !window.confirm(
+        "Mark this booking as checked out now? (Testing only — unlocks guest reviews early.)",
+      )
+    ) {
+      return;
+    }
+    dispatch(manualCheckoutBookingAsync(id)).then(() => load(activeTab, page));
   };
 
   const start = total === 0 ? 0 : (page - 1) * limit + 1;
@@ -304,6 +349,7 @@ function VenueBookingsSection({ venueId }) {
                   actionBookingId={actionBookingId}
                   onAccept={handleAccept}
                   onReject={handleReject}
+                  onManualCheckout={handleManualCheckout}
                 />
               ))}
             </tbody>
@@ -331,6 +377,7 @@ function VenueBookingsSection({ venueId }) {
               actionBookingId={actionBookingId}
               onAccept={handleAccept}
               onReject={handleReject}
+              onManualCheckout={handleManualCheckout}
             />
           ))
         )}

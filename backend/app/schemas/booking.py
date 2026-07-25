@@ -146,6 +146,8 @@ class OwnerBookingOut(BaseModel):
     payment_option: Optional[str] = None
     amount_paid: Optional[float] = 0.0
     balance_due: Optional[float] = None
+    checked_in_at: Optional[datetime] = None
+    checked_out_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

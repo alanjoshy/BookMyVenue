@@ -81,6 +81,17 @@ export const collectBookingBalanceAsync = createAsyncThunk(
   },
 );
 
+export const manualCheckoutBookingAsync = createAsyncThunk(
+  "venueOwner/manualCheckoutBooking",
+  async (id, { rejectWithValue }) => {
+    try {
+      return await venueOwnerService.manualCheckoutBooking(id);
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
 export const fetchAvailabilityCalendarAsync = createAsyncThunk(
   "venueOwner/fetchAvailabilityCalendar",
   async (params, { rejectWithValue }) => {
@@ -473,6 +484,33 @@ const venueOwnerSlice = createSlice({
         }
       })
       .addCase(collectBookingBalanceAsync.rejected, (state, action) => {
+        state.loading.actionBooking = null;
+        state.error = action.payload;
+      })
+
+      .addCase(manualCheckoutBookingAsync.pending, (state, action) => {
+        state.loading.actionBooking = action.meta.arg;
+        state.error = null;
+      })
+      .addCase(manualCheckoutBookingAsync.fulfilled, (state, action) => {
+        state.loading.actionBooking = null;
+        const updated = action.payload;
+        const idx = state.ownerBookings.items.findIndex((b) => b.id === updated.id);
+        if (idx !== -1) {
+          state.ownerBookings.items[idx] = {
+            ...state.ownerBookings.items[idx],
+            ...updated,
+          };
+        }
+        const vIdx = state.venueBookings.items.findIndex((b) => b.id === updated.id);
+        if (vIdx !== -1) {
+          state.venueBookings.items[vIdx] = {
+            ...state.venueBookings.items[vIdx],
+            ...updated,
+          };
+        }
+      })
+      .addCase(manualCheckoutBookingAsync.rejected, (state, action) => {
         state.loading.actionBooking = null;
         state.error = action.payload;
       })

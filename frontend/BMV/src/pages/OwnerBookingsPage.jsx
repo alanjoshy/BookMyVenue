@@ -9,6 +9,7 @@ import {
   acceptBookingRequestAsync,
   rejectBookingRequestAsync,
   collectBookingBalanceAsync,
+  manualCheckoutBookingAsync,
 } from "../modules/venueOwner/venueOwnerSlice";
 import { formatBookingPeriod } from "../utils/bookingFormat";
 
@@ -24,6 +25,7 @@ const TABS = [
 function resolveDisplayStatus(booking) {
   if (booking.owner_status === "rejected") return "rejected";
   if (booking.status === "cancelled") return "cancelled";
+  if (booking.status === "completed") return "completed";
   const endDate = booking.check_out_date ?? booking.booking_date;
   const isPast = new Date(endDate) < new Date(new Date().toDateString());
   if (booking.owner_status === "accepted" && isPast) return "completed";
@@ -71,31 +73,58 @@ function hasBalanceDue(booking) {
   );
 }
 
-function ActionButtons({ booking, actionBookingId, onAccept, onReject, onCollectBalance }) {
+function canManualCheckout(booking) {
+  return booking.status === "booked" && booking.owner_status === "accepted";
+}
+
+function ActionButtons({
+  booking,
+  actionBookingId,
+  onAccept,
+  onReject,
+  onCollectBalance,
+  onManualCheckout,
+}) {
   const displayStatus = resolveDisplayStatus(booking);
   const isActing = actionBookingId === booking.id;
 
   if (displayStatus !== "pending") {
-    if (hasBalanceDue(booking)) {
-      return (
-        <button
-          onClick={() => onCollectBalance(booking.id)}
-          disabled={isActing}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
-        >
-          {isActing ? (
-            <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <IndianRupee size={12} />
-          )}
-          Collect {Number(booking.balance_due).toLocaleString("en-IN")}
-        </button>
-      );
-    }
     return (
-      <button className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold transition-colors">
-        Manage
-      </button>
+      <div className="flex flex-col items-stretch gap-1.5 min-w-[120px]">
+        {hasBalanceDue(booking) && (
+          <button
+            onClick={() => onCollectBalance(booking.id)}
+            disabled={isActing}
+            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+          >
+            {isActing ? (
+              <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <IndianRupee size={12} />
+            )}
+            Collect {Number(booking.balance_due).toLocaleString("en-IN")}
+          </button>
+        )}
+        {canManualCheckout(booking) && (
+          <button
+            type="button"
+            title="Testing: complete booking early so the guest can leave a review"
+            onClick={() => onManualCheckout(booking.id)}
+            disabled={isActing}
+            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-[11px] font-semibold transition-colors disabled:opacity-50"
+          >
+            {isActing ? (
+              <span className="w-3 h-3 border border-amber-600 border-t-transparent rounded-full animate-spin" />
+            ) : null}
+            Checkout (testing)
+          </button>
+        )}
+        {!hasBalanceDue(booking) && !canManualCheckout(booking) && (
+          <button className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold transition-colors">
+            Manage
+          </button>
+        )}
+      </div>
     );
   }
 
@@ -139,7 +168,7 @@ function PaymentSummary({ booking }) {
 }
 
 // Desktop table row
-function BookingRow({ booking, actionBookingId, onAccept, onReject, onCollectBalance }) {
+function BookingRow({ booking, actionBookingId, onAccept, onReject, onCollectBalance, onManualCheckout }) {
   const periodStr = formatBookingPeriod(booking);
 
   return (
@@ -175,6 +204,11 @@ function BookingRow({ booking, actionBookingId, onAccept, onReject, onCollectBal
             <Users size={10} /> {booking.guest_count} guests
           </p>
         )}
+        {booking.checked_out_at && (
+          <p className="text-[11px] text-amber-700 mt-0.5">
+            Checked out {new Date(booking.checked_out_at).toLocaleString("en-IN")} (testing)
+          </p>
+        )}
       </td>
 
       {/* Status */}
@@ -208,6 +242,7 @@ function BookingRow({ booking, actionBookingId, onAccept, onReject, onCollectBal
             onAccept={onAccept}
             onReject={onReject}
             onCollectBalance={onCollectBalance}
+            onManualCheckout={onManualCheckout}
           />
         </div>
       </td>
@@ -216,7 +251,7 @@ function BookingRow({ booking, actionBookingId, onAccept, onReject, onCollectBal
 }
 
 // Mobile card
-function BookingCard({ booking, actionBookingId, onAccept, onReject, onCollectBalance }) {
+function BookingCard({ booking, actionBookingId, onAccept, onReject, onCollectBalance, onManualCheckout }) {
   const periodStr = formatBookingPeriod(booking);
 
   return (
@@ -252,6 +287,11 @@ function BookingCard({ booking, actionBookingId, onAccept, onReject, onCollectBa
           <span className="flex items-center gap-1"><Users size={11} /> {booking.guest_count} guests</span>
         )}
       </div>
+      {booking.checked_out_at && (
+        <p className="text-[11px] text-amber-700">
+          Checked out {new Date(booking.checked_out_at).toLocaleString("en-IN")} (testing)
+        </p>
+      )}
 
       {/* Amount + actions */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
@@ -268,6 +308,7 @@ function BookingCard({ booking, actionBookingId, onAccept, onReject, onCollectBa
           onAccept={onAccept}
           onReject={onReject}
           onCollectBalance={onCollectBalance}
+          onManualCheckout={onManualCheckout}
         />
       </div>
     </div>
@@ -358,6 +399,17 @@ function OwnerBookingsPage() {
     dispatch(collectBookingBalanceAsync(id)).then(() => load(activeTab, page));
   };
 
+  const handleManualCheckout = (id) => {
+    if (
+      !window.confirm(
+        "Mark this booking as checked out now? (Testing only — unlocks guest reviews early.)",
+      )
+    ) {
+      return;
+    }
+    dispatch(manualCheckoutBookingAsync(id)).then(() => load(activeTab, page));
+  };
+
   const isLoading = loading.ownerBookings;
   const actionBookingId = loading.actionBooking;
 
@@ -415,6 +467,7 @@ function OwnerBookingsPage() {
                         onAccept={handleAccept}
                         onReject={handleReject}
                         onCollectBalance={handleCollectBalance}
+                        onManualCheckout={handleManualCheckout}
                       />
                     ))}
             </tbody>
@@ -441,6 +494,7 @@ function OwnerBookingsPage() {
                     onAccept={handleAccept}
                     onReject={handleReject}
                     onCollectBalance={handleCollectBalance}
+                    onManualCheckout={handleManualCheckout}
                   />
                 ))}
         </div>
