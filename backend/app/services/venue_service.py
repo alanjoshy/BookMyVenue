@@ -11,10 +11,9 @@ from app.services.notification_service import create_notification
 from app.services.venue_image_service import seed_gallery, sync_cover
 from app.services.cancellation_policy_service import validate_cancellation_policy_fields
 from app.services.booking_dates import (
-    booking_end_dt,
-    booking_start_dt,
     combine_dt,
-    intervals_overlap,
+    dates_overlap,
+    is_blocking_booking,
 )
 
 
@@ -70,20 +69,18 @@ def _find_overlap(
     start_dt: datetime,
     end_dt: datetime,
 ) -> Booking | None:
-    bookings = (
-        db.query(Booking)
-        .filter(
-            Booking.venue_id == venue_id,
-            Booking.status != "cancelled",
-        )
-        .all()
-    )
+    """Block if any active booking shares a calendar day with the requested stay."""
+    req_start = start_dt.date()
+    req_end = end_dt.date()
+    bookings = db.query(Booking).filter(Booking.venue_id == venue_id).all()
     for booking in bookings:
-        if intervals_overlap(
-            start_dt,
-            end_dt,
-            booking_start_dt(booking),
-            booking_end_dt(booking),
+        if not is_blocking_booking(booking):
+            continue
+        if dates_overlap(
+            req_start,
+            req_end,
+            booking.check_in_date,
+            booking.check_out_date,
         ):
             return booking
     return None
@@ -245,6 +242,16 @@ def check_availability_range(
     if conflict:
         result["conflict_date"] = str(conflict.check_in_date)
         result["conflict_booking_id"] = conflict.id
+        if conflict.owner_status == "accepted" or conflict.status == "booked":
+            result["reason"] = (
+                f"This venue is already booked from {conflict.check_in_date} "
+                f"to {conflict.check_out_date}"
+            )
+        else:
+            result["reason"] = (
+                f"This venue already has a booking request from "
+                f"{conflict.check_in_date} to {conflict.check_out_date}"
+            )
     return result
 
 

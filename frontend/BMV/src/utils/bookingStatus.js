@@ -5,6 +5,8 @@
 export function resolveCustomerBookingStatus(booking) {
   if (!booking) return "unknown";
   if (booking.owner_status === "rejected") return "rejected";
+  if (booking.status === "completed") return "completed";
+  if (booking.checked_in_at) return "checked_in";
   if (booking.status === "pending_payment" && booking.owner_status === "pending") {
     return "awaiting_approval";
   }

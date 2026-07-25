@@ -61,3 +61,13 @@ def cancel_booking(
 ):
     reason = data.cancellation_reason if data else None
     return booking_service.cancel_booking(db, current_user, booking_id, reason)
+
+
+@router.post("/{booking_id}/checkout", response_model=BookingDetailOut)
+def manual_checkout(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Testing: manually mark checkout so reviews unlock before the scheduled end date."""
+    return booking_service.manual_checkout_booking(db, current_user, booking_id)

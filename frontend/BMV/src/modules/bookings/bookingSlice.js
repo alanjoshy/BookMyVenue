@@ -46,6 +46,17 @@ export const cancelBookingAsync = createAsyncThunk(
   },
 );
 
+export const manualCheckoutAsync = createAsyncThunk(
+  "bookings/manualCheckout",
+  async (id, { rejectWithValue }) => {
+    try {
+      return await bookingService.manualCheckout(id);
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
 const bookingSlice = createSlice({
   name: "bookings",
   initialState: {
@@ -125,6 +136,19 @@ const bookingSlice = createSlice({
         }
       })
       .addCase(cancelBookingAsync.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+
+      .addCase(manualCheckoutAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(manualCheckoutAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        state.current = action.payload;
+      })
+      .addCase(manualCheckoutAsync.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload;
       });
   },

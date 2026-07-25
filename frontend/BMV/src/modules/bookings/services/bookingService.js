@@ -48,4 +48,13 @@ export const bookingService = {
       unwrap(err);
     }
   },
+
+  async manualCheckout(id) {
+    try {
+      const res = await client.post(`/bookings/${id}/checkout`);
+      return res.data;
+    } catch (err) {
+      unwrap(err);
+    }
+  },
 };

@@ -18,10 +18,10 @@ from app.services.booking_lock import acquire_range_lock
 from app.services.booking_dates import (
     MAX_BOOKING_DAYS,
     booking_end_dt,
-    booking_start_dt,
     combine_dt,
     count_days,
-    intervals_overlap,
+    dates_overlap,
+    is_blocking_booking,
 )
 
 
@@ -89,22 +89,20 @@ def _has_overlap(
     *,
     exclude_booking_id: int | None = None,
 ) -> Booking | None:
-    bookings = (
-        db.query(Booking)
-        .filter(
-            Booking.venue_id == venue_id,
-            Booking.status != "cancelled",
-        )
-        .all()
-    )
+    """Block if any active booking shares a calendar day with the requested stay."""
+    req_start = start_dt.date()
+    req_end = end_dt.date()
+    bookings = db.query(Booking).filter(Booking.venue_id == venue_id).all()
     for existing in bookings:
         if exclude_booking_id is not None and existing.id == exclude_booking_id:
             continue
-        if intervals_overlap(
-            start_dt,
-            end_dt,
-            booking_start_dt(existing),
-            booking_end_dt(existing),
+        if not is_blocking_booking(existing):
+            continue
+        if dates_overlap(
+            req_start,
+            req_end,
+            existing.check_in_date,
+            existing.check_out_date,
         ):
             return existing
     return None
@@ -207,7 +205,7 @@ def create_booking(
     if conflict:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This time range overlaps with an existing booking",
+            detail="This date range overlaps with an existing booking",
         )
 
     amount = Decimal(str(venue.price_per_day)) * num_days
@@ -256,7 +254,7 @@ def create_booking(
             )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This time range overlaps with an existing booking",
+            detail="This date range overlaps with an existing booking",
         )
 
     create_notification(
@@ -324,6 +322,7 @@ def _serialize_list_item(
         "payment_status": payment.status if payment else None,
         "can_review": can_review,
         "has_review": has_review,
+        "checked_in_at": booking.checked_in_at,
         "created_at": booking.created_at,
     }
 
@@ -414,6 +413,10 @@ def _serialize_detail(db: Session, booking: Booking, venue: Venue | None, paymen
         "cancellation_policy": cancellation_policy,
         "cancellation_reason": booking.cancellation_reason,
         "cancelled_at": booking.cancelled_at,
+        "checked_out_at": booking.checked_out_at,
+        "can_manual_checkout": (
+            booking.status == "booked" and booking.owner_status == "accepted"
+        ),
         **_check_in_qr_fields(booking),
     }
 
@@ -487,6 +490,37 @@ def _get_own_booking_or_404(db: Session, current_user: User, booking_id: int) ->
 def get_booking_detail(db: Session, current_user: User, booking_id: int) -> dict:
     booking = _get_own_booking_or_404(db, current_user, booking_id)
     maybe_complete_booking(db, booking)
+    venue = get_venue(db, booking.venue_id)
+    payment = _latest_payment(db, booking.id)
+    return _serialize_detail(db, booking, venue, payment)
+
+
+def manual_checkout_booking(db: Session, current_user: User, booking_id: int) -> dict:
+    """
+    Testing helper: mark a confirmed booking as checked out / completed early
+    so the customer can leave a review without waiting for check-out datetime.
+    """
+    booking = _get_own_booking_or_404(db, current_user, booking_id)
+
+    if booking.status == "completed":
+        venue = get_venue(db, booking.venue_id)
+        payment = _latest_payment(db, booking.id)
+        return _serialize_detail(db, booking, venue, payment)
+
+    if booking.status != "booked" or booking.owner_status != "accepted":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only an accepted, paid booking can be checked out",
+        )
+
+    now = datetime.now(timezone.utc)
+    if not booking.checked_in_at:
+        booking.checked_in_at = now
+    booking.checked_out_at = now
+    booking.status = "completed"
+    db.commit()
+    db.refresh(booking)
+
     venue = get_venue(db, booking.venue_id)
     payment = _latest_payment(db, booking.id)
     return _serialize_detail(db, booking, venue, payment)

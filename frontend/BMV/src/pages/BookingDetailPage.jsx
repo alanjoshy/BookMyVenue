@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   fetchBookingDetailAsync,
   cancelBookingAsync,
+  manualCheckoutAsync,
 } from "../modules/bookings/bookingSlice";
 import StatusBadge from "../components/shared/StatusBadge";
 import BookingQrCode from "../components/BookingQrCode";
@@ -30,6 +31,7 @@ function BookingDetailPage() {
   const [showModal, setShowModal] = useState(false);
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
     dispatch(fetchBookingDetailAsync(Number(id)));
@@ -37,14 +39,18 @@ function BookingDetailPage() {
 
   const displayStatus = current ? resolveCustomerBookingStatus(current) : null;
   const awaitingOwnerApproval = displayStatus === "awaiting_approval";
+  const awaitingCheckIn =
+    current?.show_check_in_qr &&
+    current?.check_in_token &&
+    !current?.checked_in_at;
 
   useEffect(() => {
-    if (!awaitingOwnerApproval) return undefined;
+    if (!awaitingOwnerApproval && !awaitingCheckIn) return undefined;
     const interval = setInterval(() => {
       dispatch(fetchBookingDetailAsync(Number(id)));
     }, 10000);
     return () => clearInterval(interval);
-  }, [awaitingOwnerApproval, dispatch, id]);
+  }, [awaitingOwnerApproval, awaitingCheckIn, dispatch, id]);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -56,6 +62,19 @@ function BookingDetailPage() {
       setShowModal(false);
       setReason("");
     }
+  };
+
+  const handleTestCheckout = async () => {
+    if (
+      !window.confirm(
+        "Mark this booking as checked out now? (Testing only — unlocks reviews early.)",
+      )
+    ) {
+      return;
+    }
+    setCheckingOut(true);
+    await dispatch(manualCheckoutAsync(Number(id)));
+    setCheckingOut(false);
   };
 
   if (loading && !current) {
@@ -85,6 +104,7 @@ function BookingDetailPage() {
   const refundPreviewAmount = current.refund_amount_if_cancelled ?? 0;
   const canPay = canCustomerPay(current);
   const isRejected = displayStatus === "rejected";
+  const canManualCheckout = current.can_manual_checkout === true;
 
   return (
     <div className="max-w-xl space-y-4">
@@ -151,6 +171,13 @@ function BookingDetailPage() {
               value={new Date(current.payment.paid_at).toLocaleString("en-IN")}
             />
           )}
+          {current.checked_out_at && (
+            <Row
+              label="Checked out"
+              value={`${new Date(current.checked_out_at).toLocaleString("en-IN")} (testing)`}
+              className="col-span-2"
+            />
+          )}
         </div>
 
         {current.notes && (
@@ -209,12 +236,12 @@ function BookingDetailPage() {
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-2 flex-wrap">
           {canPay && (
             <button
               type="button"
               onClick={() => navigate(`/checkout/${current.id}`)}
-              className="flex-1 bg-rose-900 hover:bg-rose-950 text-white py-2.5 rounded-xl text-sm font-medium"
+              className="flex-1 min-w-[140px] bg-rose-900 hover:bg-rose-950 text-white py-2.5 rounded-xl text-sm font-medium"
             >
               Pay now
             </button>
@@ -223,21 +250,47 @@ function BookingDetailPage() {
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="flex-1 border border-rose-200 text-rose-600 py-2.5 rounded-xl text-sm font-medium hover:bg-rose-50"
+              className="flex-1 min-w-[140px] border border-rose-200 text-rose-600 py-2.5 rounded-xl text-sm font-medium hover:bg-rose-50"
             >
               Cancel order
             </button>
           )}
         </div>
+
+        {canManualCheckout && (
+          <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/80 p-3 space-y-2">
+            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
+              Testing
+            </p>
+            <p className="text-xs text-amber-700">
+              Manually mark checkout now to complete this booking early and unlock the review form.
+              The checkout date/time will be recorded as now.
+            </p>
+            <button
+              type="button"
+              onClick={handleTestCheckout}
+              disabled={checkingOut || loading}
+              className="w-full border border-amber-400 text-amber-900 bg-white hover:bg-amber-100 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+            >
+              {checkingOut ? "Checking out…" : "Mark checkout (testing)"}
+            </button>
+          </div>
+        )}
       </div>
 
       {current.show_check_in_qr && current.check_in_token && (
         <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-3">
-          <h2 className="text-lg font-semibold text-slate-800">Venue check-in QR</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Venue check-in</h2>
           {current.checked_in_at ? (
-            <p className="text-sm text-emerald-700 bg-emerald-50 rounded-xl px-4 py-3">
-              Checked in at {new Date(current.checked_in_at).toLocaleString("en-IN")}
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-teal-800 bg-teal-50 border border-teal-100 rounded-xl px-4 py-3 font-medium">
+                Checked in at {new Date(current.checked_in_at).toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-slate-500">
+                Check-in code used:{" "}
+                <code className="font-mono text-slate-700">{current.check_in_token}</code>
+              </p>
+            </div>
           ) : (
             <BookingQrCode token={current.check_in_token} />
           )}

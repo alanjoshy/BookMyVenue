@@ -140,6 +140,11 @@ function OrderHistoryPage() {
                       Rejected by owner
                     </span>
                   )}
+                  {displayStatus === "checked_in" && (
+                    <span className="inline-block text-xs text-teal-700 font-medium">
+                      Checked in at venue
+                    </span>
+                  )}
                   {b.can_review && (
                     <span className="inline-block text-xs text-rose-800 font-medium">Write review →</span>
                   )}

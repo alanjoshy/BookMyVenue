@@ -41,6 +41,7 @@ class Booking(Base):
     idempotency_key: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
     check_in_token: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True, index=True)
     checked_in_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    checked_out_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -26,6 +26,32 @@ def intervals_overlap(
     return a_start < b_end and b_start < a_end
 
 
+def dates_overlap(
+    a_start: date,
+    a_end: date,
+    b_start: date,
+    b_end: date,
+) -> bool:
+    """True when two inclusive calendar-date ranges share any day."""
+    return a_start <= b_end and b_start <= a_end
+
+
+def is_blocking_booking(booking: Any) -> bool:
+    """
+    Bookings that still hold venue dates:
+    - awaiting owner approval (pending_payment + pending)
+    - accepted, waiting for payment
+    - paid / confirmed (booked)
+    Rejected, cancelled, and completed bookings free the dates again.
+    """
+    if getattr(booking, "owner_status", None) == "rejected":
+        return False
+    status = getattr(booking, "status", None)
+    if status in ("cancelled", "completed"):
+        return False
+    return True
+
+
 def count_days(check_in_date: date, check_out_date: date) -> int:
     return (check_out_date - check_in_date).days + 1
 

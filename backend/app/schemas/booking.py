@@ -83,6 +83,7 @@ class BookingListItemOut(BaseModel):
     payment_status: Optional[str] = None
     can_review: bool = False
     has_review: bool = False
+    checked_in_at: Optional[datetime] = None
     created_at: datetime
 
 
@@ -105,7 +106,9 @@ class BookingDetailOut(BookingOut):
     cancelled_at: Optional[datetime] = None
     check_in_token: Optional[str] = None
     checked_in_at: Optional[datetime] = None
+    checked_out_at: Optional[datetime] = None
     show_check_in_qr: bool = False
+    can_manual_checkout: bool = False
 
 
 class VenueSnippet(BaseModel):
