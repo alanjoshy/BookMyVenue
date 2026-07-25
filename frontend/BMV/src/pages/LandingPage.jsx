@@ -111,7 +111,8 @@ function StarRating({ rating, className = "" }) {
 }
 
 function ReviewCard({ review }) {
-  const initials = review.reviewer_name
+  const reviewerName = review.reviewer_name || "Anonymous";
+  const initials = reviewerName
     .split(" ")
     .map((w) => w[0])
     .join("")
@@ -129,10 +130,9 @@ function ReviewCard({ review }) {
           {initials}
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-800">{review.reviewer_name}</p>
+          <p className="text-sm font-semibold text-slate-800">{reviewerName}</p>
           <p className="text-xs text-slate-400">
-            {review.event_type ? `${review.event_type} · ` : ""}
-            {review.venue_name}
+            Verified BookMyVenue customer
           </p>
         </div>
       </div>
@@ -235,7 +235,7 @@ function LandingPage() {
 
   useEffect(() => {
     reviewService
-      .fetchPublicReviews(6)
+      .fetchPublicPlatformReviews(6)
       .then(setReviews)
       .catch(() => setReviews([]))
       .finally(() => setReviewsLoading(false));
@@ -394,7 +394,7 @@ function LandingPage() {
         <section className="bg-white py-16">
           <div className="mx-auto max-w-7xl px-4">
             <div className="text-center mb-10">
-              <h2 className="text-2xl font-bold text-slate-800">What Our Customers Say</h2>
+              <h2 className="text-2xl font-bold text-slate-800">What Customers Say About BookMyVenue</h2>
               <div className="flex justify-center items-center gap-1 mt-2">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <StarIcon key={i} className="w-4 h-4 text-amber-400" />
@@ -430,7 +430,7 @@ function LandingPage() {
               </div>
             ) : (
               <p className="text-center text-slate-400 text-sm py-8">
-                No reviews yet. Be the first to book and share your experience!
+                No platform reviews yet. Complete a booking and share your experience!
               </p>
             )}
           </div>

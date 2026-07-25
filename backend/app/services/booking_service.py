@@ -9,6 +9,7 @@ from app.models.booking import Booking
 from app.models.payment import Payment
 from app.models.refund import Refund, generate_refund_id
 from app.models.review import Review
+from app.models.platform_review import PlatformReview
 from app.models.user import User
 from app.models.venue import Venue
 from app.schemas.booking import BookingCreate
@@ -294,6 +295,26 @@ def _review_flags(db: Session, booking: Booking) -> tuple[bool, bool]:
     return can_review, has_review
 
 
+def _platform_review_flags(
+    db: Session,
+    booking: Booking,
+    *,
+    has_venue_review: bool,
+) -> tuple[bool, bool]:
+    has_platform_review = (
+        db.query(PlatformReview.id)
+        .filter(PlatformReview.booking_id == booking.id)
+        .first()
+        is not None
+    )
+    can_platform_review = (
+        booking.status == "completed"
+        and has_venue_review
+        and not has_platform_review
+    )
+    return can_platform_review, has_platform_review
+
+
 def _serialize_list_item(
     db: Session,
     booking: Booking,
@@ -301,6 +322,11 @@ def _serialize_list_item(
     payment: Payment | None,
 ) -> dict:
     can_review, has_review = _review_flags(db, booking)
+    can_platform_review, has_platform_review = _platform_review_flags(
+        db,
+        booking,
+        has_venue_review=has_review,
+    )
     return {
         "id": booking.id,
         "venue_id": booking.venue_id,
@@ -322,6 +348,8 @@ def _serialize_list_item(
         "payment_status": payment.status if payment else None,
         "can_review": can_review,
         "has_review": has_review,
+        "can_platform_review": can_platform_review,
+        "has_platform_review": has_platform_review,
         "checked_in_at": booking.checked_in_at,
         "created_at": booking.created_at,
     }
@@ -353,6 +381,11 @@ def _latest_refund(db: Session, payment_id: int | None) -> Refund | None:
 
 def _serialize_detail(db: Session, booking: Booking, venue: Venue | None, payment: Payment | None) -> dict:
     can_review, has_review = _review_flags(db, booking)
+    can_platform_review, has_platform_review = _platform_review_flags(
+        db,
+        booking,
+        has_venue_review=has_review,
+    )
     policy = evaluate_policy(venue, booking)
     cancellation_policy = None
     if policy["refund_50_deadline"] is not None:
@@ -406,6 +439,8 @@ def _serialize_detail(db: Session, booking: Booking, venue: Venue | None, paymen
         "payment_status": payment.status if payment else None,
         "can_review": can_review,
         "has_review": has_review,
+        "can_platform_review": can_platform_review,
+        "has_platform_review": has_platform_review,
         "can_cancel": policy["can_cancel"],
         "refund_percent_if_cancelled": refund_percent,
         "refund_amount_if_cancelled": refund_amount,

@@ -9,6 +9,7 @@ import {
 import StatusBadge from "../components/shared/StatusBadge";
 import BookingQrCode from "../components/BookingQrCode";
 import ReviewForm from "../components/ReviewForm";
+import PlatformReviewForm from "../components/PlatformReviewForm";
 import { formatBookingPeriod } from "../utils/bookingFormat";
 import { formatPolicyDate } from "../utils/cancellationPolicy";
 import {
@@ -321,9 +322,31 @@ function BookingDetailPage() {
         </div>
       )}
 
-      {current.has_review && (
+      {current.can_platform_review && (
+        <div className="bg-white rounded-2xl border border-rose-100 p-6 space-y-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">
+              Step 2 of 2
+            </p>
+            <h2 className="text-lg font-semibold text-slate-800 mt-1">
+              Review BookMyVenue
+            </h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              You reviewed the venue. Now tell us about your experience using our platform.
+            </p>
+          </div>
+          <PlatformReviewForm
+            bookingId={current.id}
+            onSuccess={() => dispatch(fetchBookingDetailAsync(Number(id)))}
+          />
+        </div>
+      )}
+
+      {current.has_review && !current.can_platform_review && (
         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-sm text-emerald-800">
-          You have already reviewed this booking. Thank you for your feedback!
+          {current.has_platform_review
+            ? "You reviewed both the venue and BookMyVenue. Thank you for your feedback!"
+            : "Your venue review was submitted. Thank you for your feedback!"}
         </div>
       )}
 

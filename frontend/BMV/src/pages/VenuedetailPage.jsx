@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchVenueByIdAsync, fetchPublicVenuesAsync, clearSelectedVenue } from "../modules/venues/venuesSlice";
+import {
+  clearSelectedVenue,
+  clearVenueReviews,
+  fetchPublicVenuesAsync,
+  fetchVenueByIdAsync,
+  fetchVenueReviewsAsync,
+} from "../modules/venues/venuesSlice";
 import { createBookingAsync } from "../modules/bookings/bookingSlice";
 import { venueService } from "../modules/venues/services/venueService";
 import Footer from "../components/Footer";
@@ -676,7 +682,16 @@ function SimilarVenueCard({ venue }) {
 function VenueDetailPage() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const { selected: venue, isLoadingSelected, selectedError, list } = useSelector((state) => state.venues);
+  const {
+    selected: venue,
+    isLoadingSelected,
+    selectedError,
+    list,
+    reviews: reviewsData,
+    isLoadingReviews,
+    reviewsError,
+  } = useSelector((state) => state.venues);
+  const venueReviews = reviewsData?.reviews ?? [];
 
   const similarVenues = list
     .filter((v) => v.id !== Number(id))
@@ -684,11 +699,13 @@ function VenueDetailPage() {
 
   useEffect(() => {
     dispatch(fetchVenueByIdAsync(Number(id)));
+    dispatch(fetchVenueReviewsAsync(Number(id)));
     if (list.length === 0) {
       dispatch(fetchPublicVenuesAsync({ limit: 20 }));
     }
     return () => {
       dispatch(clearSelectedVenue());
+      dispatch(clearVenueReviews());
     };
   }, [id, dispatch]);
 
@@ -813,7 +830,17 @@ function VenueDetailPage() {
                   </div>
                 )}
               </div>
-              {venue.total_reviews === 0 ? (
+              {isLoadingReviews ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((item) => (
+                    <div key={item} className="h-28 rounded-xl bg-slate-50 animate-pulse" />
+                  ))}
+                </div>
+              ) : reviewsError ? (
+                <p className="text-sm text-rose-600 bg-rose-50 rounded-xl px-4 py-3">
+                  Could not load reviews.
+                </p>
+              ) : venueReviews.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="flex justify-center gap-0.5 mb-3">
                     {[1,2,3,4,5].map(i => <StarIcon key={i} filled={false} className="w-6 h-6 text-slate-200" />)}
@@ -821,13 +848,50 @@ function VenueDetailPage() {
                   <p className="text-slate-400 text-sm">No reviews yet. Book this venue and be the first to review!</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <p className="text-sm text-slate-500">
-                    {venue.total_reviews} review{venue.total_reviews !== 1 ? "s" : ""} from verified guests.
+                    {reviewsData.total_reviews} review{reviewsData.total_reviews !== 1 ? "s" : ""} from verified guests.
                   </p>
-                  <Link to={`/venues/${venue.id}`} className="text-sm text-rose-600 font-medium hover:underline flex items-center gap-1">
-                    Show all {venue.total_reviews} reviews <ArrowRightIcon className="w-3.5 h-3.5" />
-                  </Link>
+                  {venueReviews.map((review) => (
+                    <article
+                      key={review.id}
+                      className="rounded-xl border border-slate-100 bg-slate-50/50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {review.reviewer_name}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {review.event_type ? `${review.event_type} · ` : ""}
+                            {new Date(review.created_at).toLocaleDateString("en-IN")}
+                          </p>
+                        </div>
+                        <div className="flex gap-0.5" aria-label={`${review.rating} out of 5 stars`}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <StarIcon
+                              key={star}
+                              filled={star <= review.rating}
+                              className={`w-4 h-4 ${
+                                star <= review.rating ? "text-amber-400" : "text-slate-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-slate-600 leading-relaxed mt-3">
+                          {review.comment}
+                        </p>
+                      )}
+                      {review.owner_reply && (
+                        <div className="mt-3 ml-4 rounded-lg border-l-2 border-rose-300 bg-white px-3 py-2">
+                          <p className="text-xs font-semibold text-rose-700">Venue owner response</p>
+                          <p className="text-xs text-slate-600 mt-1">{review.owner_reply}</p>
+                        </div>
+                      )}
+                    </article>
+                  ))}
                 </div>
               )}
             </div>

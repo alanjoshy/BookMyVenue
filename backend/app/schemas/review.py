@@ -44,3 +44,20 @@ class VenueReviewsOut(BaseModel):
     total_reviews: int
     average_rating: float
     rating_distribution: dict[str, int]
+
+
+class PlatformReviewCreate(BaseModel):
+    booking_id: int
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=2000)
+
+
+class PlatformReviewOut(BaseModel):
+    id: int
+    booking_id: int
+    rating: int
+    comment: Optional[str] = None
+    reviewer_name: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

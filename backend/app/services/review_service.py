@@ -5,10 +5,11 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
 from app.models.review import Review
+from app.models.platform_review import PlatformReview
 from app.models.venue import Venue
 from app.models.booking import Booking
 from app.models.user import User
-from app.schemas.review import ReviewCreate
+from app.schemas.review import PlatformReviewCreate, ReviewCreate
 from app.services.notification_service import create_notification
 from app.services.booking_service import maybe_complete_booking
 
@@ -278,9 +279,138 @@ def add_or_update_reply(db: Session, review_id: int, owner: User, reply_text: st
     
     
 def get_public_reviews(db: Session, limit: int = 6):
-    return (
+    rows = (
         db.query(Review)
+        .options(
+            joinedload(Review.reviewer),
+            joinedload(Review.venue),
+        )
         .order_by(Review.created_at.desc())
         .limit(limit)
         .all()
     )
+    booking_ids = [row.booking_id for row in rows if row.booking_id]
+    bookings = (
+        db.query(Booking).filter(Booking.id.in_(booking_ids)).all()
+        if booking_ids
+        else []
+    )
+    bookings_by_id = {booking.id: booking for booking in bookings}
+    return [
+        {
+            "id": review.id,
+            "venue_id": review.venue_id,
+            "rating": review.rating,
+            "comment": review.comment,
+            "created_at": review.created_at,
+            "reviewer_name": review.reviewer.name or "Anonymous",
+            "venue_name": review.venue.name,
+            "event_type": (
+                bookings_by_id[review.booking_id].event_type
+                if review.booking_id in bookings_by_id
+                else None
+            ),
+            "owner_reply": review.owner_reply,
+            "replied_at": review.replied_at,
+        }
+        for review in rows
+    ]
+
+
+def create_platform_review(
+    db: Session,
+    current_user: User,
+    payload: PlatformReviewCreate,
+) -> dict:
+    if current_user.role != "user":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only customers can review BookMyVenue",
+        )
+
+    booking = (
+        db.query(Booking)
+        .filter(
+            Booking.id == payload.booking_id,
+            Booking.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not booking or booking.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Platform reviews are available after a completed booking",
+        )
+
+    venue_review = (
+        db.query(Review.id)
+        .filter(
+            Review.booking_id == booking.id,
+            Review.reviewer_id == current_user.id,
+        )
+        .first()
+    )
+    if venue_review is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Submit your venue review before reviewing BookMyVenue",
+        )
+
+    existing = (
+        db.query(PlatformReview)
+        .filter(PlatformReview.booking_id == booking.id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already reviewed BookMyVenue for this booking",
+        )
+
+    platform_review = PlatformReview(
+        user_id=current_user.id,
+        booking_id=booking.id,
+        rating=payload.rating,
+        comment=(payload.comment or "").strip() or None,
+    )
+    db.add(platform_review)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already reviewed BookMyVenue for this booking",
+        )
+    db.refresh(platform_review)
+
+    return {
+        "id": platform_review.id,
+        "booking_id": platform_review.booking_id,
+        "rating": platform_review.rating,
+        "comment": platform_review.comment,
+        "reviewer_name": current_user.name or "Anonymous",
+        "created_at": platform_review.created_at,
+    }
+
+
+def get_public_platform_reviews(db: Session, limit: int = 6) -> list[dict]:
+    rows = (
+        db.query(PlatformReview)
+        .options(joinedload(PlatformReview.user))
+        .filter(PlatformReview.comment.isnot(None))
+        .order_by(PlatformReview.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": review.id,
+            "booking_id": review.booking_id,
+            "rating": review.rating,
+            "comment": review.comment,
+            "reviewer_name": review.user.name or "Anonymous",
+            "created_at": review.created_at,
+        }
+        for review in rows
+    ]

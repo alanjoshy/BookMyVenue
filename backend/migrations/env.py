@@ -14,6 +14,7 @@ from app.models import (  # noqa: F401
     payment,
     venue_owner,
     review,
+    platform_review,
     notification,
     amenity,
     venue_amenity,

@@ -14,6 +14,8 @@ from app.models.owner_profile import OwnerProfile
 from app.models.booking import Booking
 from app.models.payment import Payment
 from app.models.refund import Refund
+from app.models.review import Review
+from app.models.platform_review import PlatformReview
 
 __all__ = [
     "User",
@@ -27,4 +29,6 @@ __all__ = [
     "Booking",
     "Payment",
     "Refund",
+    "Review",
+    "PlatformReview",
 ]

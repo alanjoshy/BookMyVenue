@@ -83,6 +83,8 @@ class BookingListItemOut(BaseModel):
     payment_status: Optional[str] = None
     can_review: bool = False
     has_review: bool = False
+    can_platform_review: bool = False
+    has_platform_review: bool = False
     checked_in_at: Optional[datetime] = None
     created_at: datetime
 
@@ -97,6 +99,8 @@ class BookingDetailOut(BookingOut):
     payment_status: Optional[str] = None
     can_review: bool = False
     has_review: bool = False
+    can_platform_review: bool = False
+    has_platform_review: bool = False
     can_cancel: bool = False
     refund_percent_if_cancelled: int = 0
     refund_amount_if_cancelled: float = 0.0

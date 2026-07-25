@@ -17,6 +17,7 @@ from app.models import (
     payment,
     venue_owner,
     review,
+    platform_review,
     notification,
     amenity,
     venue_amenity,
