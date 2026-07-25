@@ -91,16 +91,4 @@ export const authService = {
     }
   },
 
-  // async refreshToken() {
-  //   try {
-  //     const refresh_token = getRefreshToken();
-  //     const res = await client.post("/auth/refresh", { refresh_token });
-  //     const { access_token } = res.data.data;
-  //     saveTokens(access_token, refresh_token);
-  //     return access_token;
-  //   } catch (err) {
-  //     clearTokens(); // refresh failed, force logout
-  //     throw new Error(getFriendlyError(err.code));
-  //   }
-  // },
 };

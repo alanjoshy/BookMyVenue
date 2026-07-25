@@ -38,13 +38,15 @@ def login(credential: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=TokenRefreshOut)
-def refresh(current_user: User = Depends(get_current_user_from_refresh_token)):
+def refresh(
+    current_user: User = Depends(get_current_user_from_refresh_token),
+    token=Depends(oauth2_scheme),
+):
     new_access_token = create_access_token(data={"sub": str(current_user.id)})
-    new_refresh_token = create_refresh_token(data={"sub": str(current_user.id)})
 
     return TokenRefreshOut(
         access_token=new_access_token,
-        refresh_token=new_refresh_token
+        refresh_token=token.credentials   
     )
 
 
