@@ -5,8 +5,9 @@ import { fetchPublicVenuesAsync } from "../modules/venues/venuesSlice";
 import { reviewService } from "../modules/reviews/services/reviewService";
 import { logoutUserAsync } from "../modules/auth/authSlice";
 import Footer from "../components/Footer";
+import Navbar from "../components/Navbar";
 
-// ─── Icons ─────────────────────────────────────────────────────────────────
+
 
 function StarIcon({ filled = true, className = "w-4 h-4" }) {
   return (
@@ -41,7 +42,6 @@ function ArrowRightIcon({ className = "w-4 h-4" }) {
   );
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
 
 function FeaturedVenueCard({ venue }) {
   return (
@@ -144,7 +144,6 @@ function ReviewCard({ review }) {
   );
 }
 
-// ─── Constants ──────────────────────────────────────────────────────────────
 
 const STATS = [
   { value: "1,000+", label: "Verified Venues" },
@@ -225,7 +224,6 @@ const WHY_FEATURES = [
   },
 ];
 
-// ─── Main Component ──────────────────────────────────────────────────────────
 
 function LandingPage() {
   const dispatch = useDispatch();
@@ -267,65 +265,9 @@ function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col font-sans">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 py-3.5 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md shadow-rose-200">
-              BMV
-            </div>
-            <span className="font-bold text-slate-800 text-lg hidden sm:inline">BookMyVenue</span>
-          </Link>
-
-          {/* ── Navbar: removed Categories and About Us ── */}
-          <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-            <Link to="/" className="hover:text-rose-600 transition-colors font-medium">Home</Link>
-            <Link to="/venues" className="hover:text-rose-600 transition-colors">Venues</Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            {isAuthenticated ? (
-              <>
-                {isOwner ? (
-                  <Link to="/owner/dashboard" className="text-sm text-slate-600 hover:text-rose-600 hidden sm:inline px-3 py-1.5">
-                    Dashboard
-                  </Link>
-                ) : (
-                  <Link to="/dashboard" className="text-sm text-slate-600 hover:text-rose-600 hidden sm:inline px-3 py-1.5">
-                    Dashboard
-                  </Link>
-                )}
-                {isAdmin && (
-                  <Link to="/admin" className="text-sm text-slate-600 hover:text-rose-600 hidden sm:inline px-3 py-1.5">
-                    Admin
-                  </Link>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="bg-rose-600 hover:bg-rose-700 text-white text-sm px-4 py-2 rounded-xl font-medium transition-colors shadow-sm shadow-rose-200"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="text-sm text-slate-600 hover:text-rose-600 px-3 py-1.5 transition-colors">
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="bg-rose-600 hover:bg-rose-700 text-white text-sm px-4 py-2 rounded-xl font-medium transition-colors shadow-sm shadow-rose-200"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar activePage="home" />
 
       <main className="flex-1">
-        {/* ── Hero ── */}
         <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-rose-950 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-rose-500 rounded-full blur-3xl" />
@@ -361,7 +303,6 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── Stats ── */}
         <section className="mx-auto max-w-7xl px-4 -mt-6 relative z-10">
           <div className="bg-rose-700 rounded-2xl shadow-xl shadow-rose-900/20 grid grid-cols-2 md:grid-cols-4 divide-x divide-rose-600">
             {STATS.map((stat) => (
@@ -373,7 +314,6 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── Featured Venues ── */}
         <section className="mx-auto max-w-7xl px-4 pt-16 pb-12">
           <div className="flex items-end justify-between mb-8">
             <div>
@@ -414,7 +354,6 @@ function LandingPage() {
           )}
         </section>
 
-        {/* ── How It Works ── */}
         <section className="bg-white py-16">
           <div className="mx-auto max-w-7xl px-4">
             <div className="text-center mb-10">
@@ -435,7 +374,6 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── Why BookMyVenue ── */}
         <section className="mx-auto max-w-7xl px-4 py-16">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold text-slate-800">Why Choose BookMyVenue?</h2>
@@ -459,7 +397,6 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── Reviews ── */}
         <section className="bg-white py-16">
           <div className="mx-auto max-w-7xl px-4">
             <div className="text-center mb-10">
@@ -505,7 +442,6 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── Own a Venue CTA ── */}
         <section className="mx-auto max-w-7xl px-4 py-16">
           <div className="relative bg-gradient-to-br from-slate-900 to-rose-950 rounded-3xl overflow-hidden">
             <div className="absolute inset-0 opacity-20">

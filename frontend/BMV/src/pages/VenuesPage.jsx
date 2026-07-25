@@ -3,8 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchPublicVenuesAsync } from "../modules/venues/venuesSlice";
 import Footer from "../components/Footer";
+import Navbar from "../components/Navbar";
 
-// ─── Icons ───────────────────────────────────────────────────────────────────
 
 function StarIcon({ className = "w-4 h-4" }) {
   return (
@@ -39,7 +39,6 @@ function SearchIcon({ className = "w-4 h-4" }) {
   );
 }
 
-// ─── Venue Card ──────────────────────────────────────────────────────────────
 
 function VenueCard({ venue }) {
   return (
@@ -113,7 +112,6 @@ function VenueCard({ venue }) {
   );
 }
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
 
 function VenueCardSkeleton() {
   return (
@@ -132,7 +130,6 @@ function VenueCardSkeleton() {
   );
 }
 
-// ─── Main Page ───────────────────────────────────────────────────────────────
 
 function VenuesPage() {
   const dispatch = useDispatch();
@@ -177,29 +174,8 @@ function VenuesPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 py-3.5 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md shadow-rose-200">
-              BMV
-            </div>
-            <span className="font-bold text-slate-800 text-lg hidden sm:inline">BookMyVenue</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-            <Link to="/" className="hover:text-rose-600 transition-colors">Home</Link>
-            <Link to="/venues" className="text-rose-600 font-medium">Venues</Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link to="/login" className="text-sm text-slate-600 hover:text-rose-600 px-3 py-1.5">Login</Link>
-            <Link to="/register" className="bg-rose-600 hover:bg-rose-700 text-white text-sm px-4 py-2 rounded-xl font-medium transition-colors">
-              Sign Up
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar activePage="venues" />
 
-      {/* ── Page Hero ── */}
       <div className="bg-gradient-to-br from-slate-900 to-rose-950 text-white py-12 px-4">
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center gap-2 text-xs text-rose-300 mb-4">
@@ -216,7 +192,6 @@ function VenuesPage() {
         </div>
       </div>
 
-      {/* ── Filters ── */}
       <div className="bg-white border-b border-slate-100 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -252,7 +227,6 @@ function VenuesPage() {
         </div>
       </div>
 
-      {/* ── Results ── */}
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-8">
         {isLoadingList ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
